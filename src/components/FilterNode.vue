@@ -6,16 +6,21 @@ defineProps({
     type: String,
     default: "Filter",
   },
+  data: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 </script>
 
 <template>
   <div class="filter-node">
     <Handle type="target" :position="Position.Top" />
-     
-
     <div class="node-content"> {{ label }}</div>
     <Handle type="source" :position="Position.Bottom" />
+    <div v-if="data?.description" class="node-description">
+      {{ data.description }}
+    </div>
   </div>
 </template>
 

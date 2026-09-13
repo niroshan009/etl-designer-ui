@@ -6,8 +6,15 @@ let id = 0
 /**
  * @returns {string} - A unique id.
  */
-function getId() {
-  return `dndnode_${id++}`
+
+const typeCounters = {}
+function getId(type) {
+  if (!typeCounters[type]) {
+    typeCounters[type] = 1
+  }
+  
+  // Return formatted string like "filter-1", "filter-2"
+  return `${type}-${typeCounters[type]++}`
 }
 
 /**
@@ -66,6 +73,7 @@ export default function useDragAndDrop() {
   }
 
   function onDragLeave() {
+    
     isDragOver.value = false
   }
 
@@ -82,12 +90,17 @@ export default function useDragAndDrop() {
    * @param {DragEvent} event
    */
   function onDrop(event) {
+    
     const position = screenToFlowCoordinate({
       x: event.clientX,
       y: event.clientY,
     })
- 
-    const nodeId = getId()
+    const type = draggedType.value || 'default'
+    console.log('-------')
+    console.log(type)
+    const nodeId = getId(type)
+    console.log("=====")
+    console.log(nodeId);
 
 
     const newNode = {
