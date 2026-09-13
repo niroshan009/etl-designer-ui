@@ -17,12 +17,14 @@ const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 const nodes = ref([]);
 const edges = ref([]);
 
+const isModalOpen = ref(false);
+const isEdgeModalOpen = ref(false);
+const selectedNode = ref(null);
+const selectedEdge = ref(null);
+const edgeLabelInput = ref("");
+const nodeDescriptionInput = ref("");
 
-const isModalOpen = ref(false)
-const selectedNode = ref(null)
-const nodeDescriptionInput = ref('')
-
-const DESCRIPTIVE_NODE_TYPES = ['join', 'filter'] // Add/remove types here
+const DESCRIPTIVE_NODE_TYPES = ["join", "filter"]; // Add/remove types here
 // onConnect(addEdges)
 
 onNodesChange((changes) => {
@@ -42,43 +44,62 @@ onConnect((connection) => {
   const customEdge = {
     ...connection,
     type: "smoothstep",
+    label: "",
     animated: true,
     markerEnd: MarkerType.ArrowClosed,
     data: { createdAt: Date.now() },
   };
 
   addEdges(customEdge);
-  edges.value.push(customEdge)
+  edges.value.push(customEdge);
   console.log(edges);
 
   console.log("Edge successfully added!");
 });
 
+function handleEdgeClick({ edge }) {
+  selectedEdge.value = edge;
+  edgeLabelInput.value = edge.label || "";
+  isEdgeModalOpen.value = true;
+}
+function saveEdgeData() {
+  if (!selectedEdge.value) return;
+  selectedEdge.value.label = edgeLabelInput.value;
+  closeEdgeModal();
+}
+function closeEdgeModal() {
+  isEdgeModalOpen.value = false;
+  selectedEdge.value = null;
+}
 function handleNodeClick({ node }) {
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
-    console.log(`Node type "${node.type}" skipped description edit.`)
-    return
+    console.log(`Node type "${node.type}" skipped description edit.`);
+    return;
   }
-  selectedNode.value = node
-  nodeDescriptionInput.value = node.data?.description || ''
-  isModalOpen.value = true
+  selectedNode.value = node;
+  nodeDescriptionInput.value = node.data?.description || "";
+  isModalOpen.value = true;
 }
 
 function saveNodeData() {
-  if (!selectedNode.value) return
+  if (!selectedNode.value) return;
 
   if (!selectedNode.value.data) {
-    selectedNode.value.data = {}
+    selectedNode.value.data = {};
   }
-  selectedNode.value.data.description = nodeDescriptionInput.value
-  console.log('Saved data for node:', selectedNode.value.id, selectedNode.value.data)
-  closeModal()
+  selectedNode.value.data.description = nodeDescriptionInput.value;
+  console.log(
+    "Saved data for node:",
+    selectedNode.value.id,
+    selectedNode.value.data
+  );
+  closeModal();
 }
 
 function closeModal() {
-  isModalOpen.value = false
-  selectedNode.value = null
-  nodeDescriptionInput.value = ''
+  isModalOpen.value = false;
+  selectedNode.value = null;
+  nodeDescriptionInput.value = "";
 }
 </script>
 
@@ -90,6 +111,7 @@ function closeModal() {
       :edges="edges"
       @node-click="handleNodeClick"
       connection-line-type="smoothstep"
+      @edge-click="handleEdgeClick"
       @dragover="onDragOver"
       @dragleave="onDragLeave"
     >
@@ -116,7 +138,6 @@ function closeModal() {
 
     <Sidebar />
 
-
     <div v-if="isModalOpen" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content">
         <h3>Configure {{ selectedNode?.type }} Node</h3>
@@ -138,6 +159,27 @@ function closeModal() {
       </div>
     </div>
 
+    <div
+      v-if="isEdgeModalOpen"
+      class="modal-backdrop"
+      @click.self="closeEdgeModal"
+    >
+      <div class="modal-content">
+        <h3>Edit Edge ({{ selectedEdge?.id }})</h3>
+        <div class="form-group">
+          <label>Edge Name / Label:</label>
+          <input
+            v-model="edgeLabelInput"
+            type="text"
+            placeholder="e.g., Success Flow"
+          />
+        </div>
+        <div class="modal-actions">
+          <button @click="closeEdgeModal">Cancel</button>
+          <button class="btn-save" @click="saveEdgeData">Save</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
