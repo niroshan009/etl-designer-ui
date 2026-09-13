@@ -1,59 +1,65 @@
 <script setup>
-import { ref } from 'vue'
-import { VueFlow, MarkerType, useVueFlow} from '@vue-flow/core'
-import DropzoneBackground from './DropzoneBackground.vue'
-import Sidebar from './Sidebar.vue'
-import useDragAndDrop from './useDnD'
-import { log } from 'console'
+import { ref } from "vue";
+import { VueFlow, MarkerType, useVueFlow } from "@vue-flow/core";
+import DropzoneBackground from "./DropzoneBackground.vue";
+import CsvReaderNode from "./components/CsvReaderNode.vue";
+import FilterNode from "./components/FilterNode.vue";
+import Sidebar from "./Sidebar.vue";
+import useDragAndDrop from "./useDnD";
+import { log } from "console";
 
-const { onConnect, addEdges, onNodesChange } = useVueFlow()
+const { onConnect, addEdges, onNodesChange } = useVueFlow();
 
-const { onDragOver, onDrop, onDragLeave,  isDragOver } = useDragAndDrop()
+const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
-const nodes = ref([])
+const nodes = ref([]);
 
 // onConnect(addEdges)
 
 onNodesChange((changes) => {
   changes.forEach((change) => {
-    if (change.type === 'add') {
-      console.log('Node added to pane:', change.item)
+    if (change.type === "add") {
+      console.log("Node added to pane:", change.item);
     } else {
-      console.log("event type :"+change.type)
+      console.log("event type :" + change.type);
     }
-  })
-})
+  });
+});
 
 onConnect((connection) => {
-  console.log('Edge connection attempted:', connection)
+  console.log("Edge connection attempted:", connection);
 
   // Example: Add custom styling or data to the edge before saving
   const customEdge = {
     ...connection,
-    type: 'smoothstep',
+    type: "smoothstep",
     animated: true,
     markerEnd: MarkerType.ArrowClosed,
     data: { createdAt: Date.now() },
-  }
+  };
 
   // Manually add the edge to the flow
-  addEdges(customEdge)
-  
-  console.log('Edge successfully added!')
-})
+  addEdges(customEdge);
+
+  console.log("Edge successfully added!");
+});
 </script>
 
 
 <template>
-  <div   class="flow-container" @drop="onDrop">
-
+  <div class="flow-container" @drop="onDrop">
     <VueFlow
       :nodes="nodes"
       connection-line-type="smoothstep"
       @dragover="onDragOver"
       @dragleave="onDragLeave"
     >
-
+      <template #node-csvreader="nodeProps">
+        <CsvReaderNode v-bind="nodeProps" />
+      </template>
+      <template #node-filter="nodeProps">
+        <FilterNode v-bind="nodeProps" />
+      </template>
       <DropzoneBackground
         :style="{
           backgroundColor: isDragOver ? '#e7f3ff' : 'transparent',
@@ -61,11 +67,9 @@ onConnect((connection) => {
         }"
       >
       </DropzoneBackground>
-
     </VueFlow>
 
     <Sidebar />
-
   </div>
 </template>
 

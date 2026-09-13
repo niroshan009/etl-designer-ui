@@ -86,9 +86,9 @@ export default function useDragAndDrop() {
       x: event.clientX,
       y: event.clientY,
     })
-    // console.log(event);
-
+ 
     const nodeId = getId()
+
 
     const newNode = {
       id: nodeId,
