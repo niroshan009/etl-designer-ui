@@ -4,9 +4,9 @@ import { VueFlow, MarkerType, useVueFlow } from "@vue-flow/core";
 import DropzoneBackground from "./DropzoneBackground.vue";
 import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
+import IcebergWriterNode from "./components/IcebergWriterNode.vue";
 import Sidebar from "./Sidebar.vue";
 import useDragAndDrop from "./useDnD";
-import { log } from "console";
 
 const { onConnect, addEdges, onNodesChange } = useVueFlow();
 
@@ -60,6 +60,12 @@ onConnect((connection) => {
       <template #node-filter="nodeProps">
         <FilterNode v-bind="nodeProps" />
       </template>
+
+    <template #node-icebergwriter="nodeProps">
+        <IcebergWriterNode v-bind="nodeProps" />
+      </template>
+
+      
       <DropzoneBackground
         :style="{
           backgroundColor: isDragOver ? '#e7f3ff' : 'transparent',

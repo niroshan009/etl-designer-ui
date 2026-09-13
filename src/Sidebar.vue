@@ -16,6 +16,8 @@ const { onDragStart } = useDragAndDrop()
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'output')">Save To Iceberg</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'csvreader')">CSV Reader</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'filter')">Filter</div>
+      <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'icebergwriter')">Iceberg Writer</div>
+
 
 
     </div>
