@@ -5,6 +5,8 @@ import DropzoneBackground from "./DropzoneBackground.vue";
 import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
 import IcebergWriterNode from "./components/IcebergWriterNode.vue";
+import JoinNode from "./components/JoinNode.vue";
+
 import Sidebar from "./Sidebar.vue";
 import useDragAndDrop from "./useDnD";
 
@@ -60,12 +62,12 @@ onConnect((connection) => {
       <template #node-filter="nodeProps">
         <FilterNode v-bind="nodeProps" />
       </template>
-
-    <template #node-icebergwriter="nodeProps">
+      <template #node-icebergwriter="nodeProps">
         <IcebergWriterNode v-bind="nodeProps" />
       </template>
-
-      
+      <template #node-join="nodeProps">
+        <JoinNode v-bind="nodeProps" />
+      </template>
       <DropzoneBackground
         :style="{
           backgroundColor: isDragOver ? '#e7f3ff' : 'transparent',
