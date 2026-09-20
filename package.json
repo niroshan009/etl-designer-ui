@@ -11,8 +11,13 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@comark/vue": "^0.7.0",
+    "@shikijs/themes": "^4.4.3",
+    "@shikijs/transformers": "^4.4.3",
+    "@sveltek/rehype-shiki": "^0.31.1",
     "@vue-flow/background": "^1.3.2",
     "@vue-flow/core": "^1.48.2",
+    "shiki": "^4.4.3",
     "vite-plugin-node-polyfills": "^0.28.0",
     "vue": "^3.5.40"
   },

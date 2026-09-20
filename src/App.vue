@@ -10,6 +10,14 @@ import JoinNode from "./components/JoinNode.vue";
 import Sidebar from "./Sidebar.vue";
 import useDragAndDrop from "./useDnD";
 import { log } from "console";
+import { debug } from "console";
+import { parseMarkdown } from "comark";
+import { Markdown } from "@comark/vue";
+
+import githubLight from "@shikijs/themes/github-light";
+import githubDark from "@shikijs/themes/github-dark";
+import shiki from 'comark/plugins/shiki'
+
 
 const { onConnect, addEdges, onNodesChange } = useVueFlow();
 
@@ -25,6 +33,19 @@ const selectedNode = ref(null);
 const selectedEdge = ref(null);
 const edgeLabelInput = ref("");
 const nodeDescriptionInput = ref("");
+
+const isOpen = ref(false);
+const isLoading = ref(false);
+const markdownText = ref("");
+
+const plugins = [
+  shiki({
+    themes: {
+      light: githubLight,
+      dark: githubDark,
+    },
+  }),
+];
 
 const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter"];
 
@@ -148,25 +169,38 @@ const sendData = async () => {
 
   console.log(payload);
   try {
+    isLoading.value = true;
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json", // Signals that you are sending JSON
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload), // Converts JavaScript object to JSON string
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    const data = await response.json();
-    responseData.value = data; // Handle the success response
+    const data = await response.text();
+    console.log(data);
+    markdownText.value = await parseMarkdown(data, {
+      plugins: [shiki()],
+    });
+    isOpen.value = true;
   } catch (error) {
+    console.log("error occured");
+    console.log(error);
     errorMessage.value = error.message; // Handle errors
+  } finally {
+    isLoading.value = false;
   }
 };
 
+const closeMDModal = () => {
+  isOpen.value = false;
+  markdownText.value = ""; // Clear content on close to save memory
+};
 const saveRow = (item, index) => {
   console.log(`Saving row at index ${index} with new data:`, item);
   // item.name and item.role already contain the updated input text here
@@ -287,6 +321,19 @@ const addRow = () => {
       </table>
     </div>
   </div>
+  <div v-if="isOpen" class="modal-overlay" @click.self="closeMDModal">
+    <div class="modal-content">
+      <!-- Close Button -->
+      <button class="close-btn" @click="closeMDModal">&times;</button>
+
+      <!-- Markdown View Area -->
+      <div class="markdown-body">
+        <Suspense>
+          <Markdown :plugins="plugins" :value="markdownText" />
+        </Suspense>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
@@ -312,7 +359,7 @@ const addRow = () => {
   background: #ffffff;
   padding: 24px;
   border-radius: 8px;
-  width: 340px;
+  width: 80vw;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
@@ -371,5 +418,55 @@ const addRow = () => {
   flex-direction: row; /* Aligns children horizontally (default) */
   gap: 20px; /* Adds clean spacing between the side-by-side divs */
   width: 100%; /* Ensures the main div spans full width */
+}
+
+/* Modal overlay targeting full screen backdrop */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* The actual modal popup container box */
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Top right exit switch styling */
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* Content spacing for the rendered markdown */
+.markdown-body {
+  line-height: 1.6;
+  text-align: left;
+}
+
+.fetch-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
 }
 </style>
