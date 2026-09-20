@@ -9,6 +9,7 @@ import JoinNode from "./components/JoinNode.vue";
 
 import Sidebar from "./Sidebar.vue";
 import useDragAndDrop from "./useDnD";
+import { log } from "console";
 
 const { onConnect, addEdges, onNodesChange } = useVueFlow();
 
@@ -16,6 +17,7 @@ const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
 const nodes = ref([]);
 const edges = ref([]);
+const configuration = ref([]);
 
 const isModalOpen = ref(false);
 const isEdgeModalOpen = ref(false);
@@ -24,13 +26,19 @@ const selectedEdge = ref(null);
 const edgeLabelInput = ref("");
 const nodeDescriptionInput = ref("");
 
-const DESCRIPTIVE_NODE_TYPES = ["join", "filter"]; // Add/remove types here
-// onConnect(addEdges)
+const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter"];
 
 onNodesChange((changes) => {
   changes.forEach((change) => {
     if (change.type === "add") {
       console.log("Node added to pane:", change.item);
+      console.log(change.item.id);
+      const payload = {
+        id: change.item.id,
+        type: change.item.type,
+        description: "",
+      };
+      nodes.value.push(payload);
     } else {
       console.log("event type :" + change.type);
     }
@@ -40,19 +48,24 @@ onNodesChange((changes) => {
 onConnect((connection) => {
   console.log("Edge connection attempted:", connection);
 
-  // Example: Add custom styling or data to the edge before saving
   const customEdge = {
     ...connection,
     type: "smoothstep",
-    label: "",
+    label: connection.source + "_" + connection.target,
     animated: true,
     markerEnd: MarkerType.ArrowClosed,
     data: { createdAt: Date.now() },
   };
 
   addEdges(customEdge);
-  edges.value.push(customEdge);
-  console.log(edges);
+
+  const newEdge = {
+    source: connection.source,
+    target: connection.target,
+    label: connection.source + "_" + connection.target,
+  };
+  edges.value.push(newEdge);
+  console.log(customEdge);
 
   console.log("Edge successfully added!");
 });
@@ -61,10 +74,24 @@ function handleEdgeClick({ edge }) {
   selectedEdge.value = edge;
   edgeLabelInput.value = edge.label || "";
   isEdgeModalOpen.value = true;
+  console.log(selectedEdge);
 }
 function saveEdgeData() {
   if (!selectedEdge.value) return;
   selectedEdge.value.label = edgeLabelInput.value;
+
+  console.log("selected " + selectedEdge.value.source);
+  const edg = edges.value.find(
+    (i) =>
+      i.source == selectedEdge.value.source &&
+      i.target == selectedEdge.value.target
+  );
+  edg.label = edgeLabelInput.value;
+  edg.source = selectedEdge.value.source;
+
+  console.log("=====");
+  console.log(edg);
+
   closeEdgeModal();
 }
 function closeEdgeModal() {
@@ -88,6 +115,10 @@ function saveNodeData() {
     selectedNode.value.data = {};
   }
   selectedNode.value.data.description = nodeDescriptionInput.value;
+  const nod = nodes.value.find((i) => i.id == selectedNode.value.id);
+  nod.description = nodeDescriptionInput.value;
+  console.log("edited the node :" + nod.id);
+
   console.log(
     "Saved data for node:",
     selectedNode.value.id,
@@ -101,91 +132,166 @@ function closeModal() {
   selectedNode.value = null;
   nodeDescriptionInput.value = "";
 }
+
+const sendData = async () => {
+  console.log("sending data");
+  console.log(edges.value);
+  console.log(nodes.value);
+  console.log(configuration.value);
+
+  const url = "http://localhost:8080/etl/create";
+  const payload = {
+    edges: edges.value,
+    nodes: nodes.value,
+    configuration: configuration.value,
+  };
+
+  console.log(payload);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json", // Signals that you are sending JSON
+      },
+      body: JSON.stringify(payload), // Converts JavaScript object to JSON string
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    responseData.value = data; // Handle the success response
+  } catch (error) {
+    errorMessage.value = error.message; // Handle errors
+  }
+};
+
+const saveRow = (item, index) => {
+  console.log(`Saving row at index ${index} with new data:`, item);
+  // item.name and item.role already contain the updated input text here
+};
+
+const addRow = () => {
+  configuration.value.push({ config: "", value: "" });
+};
 </script>
 
 
 <template>
-  <div class="flow-container" @drop="onDrop">
-    <VueFlow
-      :nodes="nodes"
-      :edges="edges"
-      @node-click="handleNodeClick"
-      connection-line-type="smoothstep"
-      @edge-click="handleEdgeClick"
-      @dragover="onDragOver"
-      @dragleave="onDragLeave"
-    >
-      <template #node-csvreader="nodeProps">
-        <CsvReaderNode v-bind="nodeProps" />
-      </template>
-      <template #node-filter="nodeProps">
-        <FilterNode v-bind="nodeProps" />
-      </template>
-      <template #node-icebergwriter="nodeProps">
-        <IcebergWriterNode v-bind="nodeProps" />
-      </template>
-      <template #node-join="nodeProps">
-        <JoinNode v-bind="nodeProps" />
-      </template>
-      <DropzoneBackground
-        :style="{
-          backgroundColor: isDragOver ? '#e7f3ff' : 'transparent',
-          transition: 'background-color 0.2s ease',
-        }"
+  <div class="main-container">
+    <div class="flow-container" @drop="onDrop">
+      <VueFlow
+        :nodes="nodes"
+        :edges="edges"
+        @node-click="handleNodeClick"
+        connection-line-type="smoothstep"
+        @edge-click="handleEdgeClick"
+        @dragover="onDragOver"
+        @dragleave="onDragLeave"
       >
-      </DropzoneBackground>
-    </VueFlow>
+        <template #node-csvreader="nodeProps">
+          <CsvReaderNode v-bind="nodeProps" />
+        </template>
+        <template #node-filter="nodeProps">
+          <FilterNode v-bind="nodeProps" />
+        </template>
+        <template #node-icebergwriter="nodeProps">
+          <IcebergWriterNode v-bind="nodeProps" />
+        </template>
+        <template #node-join="nodeProps">
+          <JoinNode v-bind="nodeProps" />
+        </template>
+        <DropzoneBackground
+          :style="{
+            backgroundColor: isDragOver ? '#e7f3ff' : 'transparent',
+            transition: 'background-color 0.2s ease',
+          }"
+        >
+        </DropzoneBackground>
+      </VueFlow>
 
-    <Sidebar />
+      <Sidebar />
+      <button @click="sendData">Generate</button>
 
-    <div v-if="isModalOpen" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal-content">
-        <h3>Configure {{ selectedNode?.type }} Node</h3>
-        <p class="node-id">ID: {{ selectedNode?.id }}</p>
+      <div v-if="isModalOpen" class="modal-backdrop" @click.self="closeModal">
+        <div class="modal-content">
+          <h3>Configure {{ selectedNode?.type }} Node</h3>
+          <p class="node-id">ID: {{ selectedNode?.id }}</p>
 
-        <div class="form-group">
-          <label>Description / Metadata:</label>
-          <textarea
-            v-model="nodeDescriptionInput"
-            placeholder="Enter description..."
-            rows="4"
-          ></textarea>
+          <div class="form-group">
+            <label>Description / Metadata:</label>
+            <textarea
+              v-model="nodeDescriptionInput"
+              placeholder="Enter description..."
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn-cancel" @click="closeModal">Cancel</button>
+            <button class="btn-save" @click="saveNodeData">Save</button>
+          </div>
         </div>
+      </div>
 
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="closeModal">Cancel</button>
-          <button class="btn-save" @click="saveNodeData">Save</button>
+      <div
+        v-if="isEdgeModalOpen"
+        class="modal-backdrop"
+        @click.self="closeEdgeModal"
+      >
+        <div class="modal-content">
+          <h3>Edit Edge ({{ selectedEdge?.id }})</h3>
+          <div class="form-group">
+            <label>Edge Name / Label:</label>
+            <input
+              v-model="edgeLabelInput"
+              type="text"
+              placeholder="e.g., Success Flow"
+            />
+          </div>
+          <div class="modal-actions">
+            <button @click="closeEdgeModal">Cancel</button>
+            <button class="btn-save" @click="saveEdgeData">Save</button>
+          </div>
         </div>
       </div>
     </div>
-
-    <div
-      v-if="isEdgeModalOpen"
-      class="modal-backdrop"
-      @click.self="closeEdgeModal"
-    >
-      <div class="modal-content">
-        <h3>Edit Edge ({{ selectedEdge?.id }})</h3>
-        <div class="form-group">
-          <label>Edge Name / Label:</label>
-          <input
-            v-model="edgeLabelInput"
-            type="text"
-            placeholder="e.g., Success Flow"
-          />
-        </div>
-        <div class="modal-actions">
-          <button @click="closeEdgeModal">Cancel</button>
-          <button class="btn-save" @click="saveEdgeData">Save</button>
-        </div>
-      </div>
+    <div>
+      <table>
+        <thead>
+          <tr>
+            <th>Configuration</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="config in configuration" :key="config.id">
+            <td>
+              <input
+                type="text"
+                v-model="config.config"
+                placeholder="Enter name"
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                v-model="config.value"
+                placeholder="Enter role"
+              />
+            </td>
+          </tr>
+        </tbody>
+        <button @click="addRow()">Add Configuration</button>
+      </table>
     </div>
   </div>
 </template>
 
 <style scoped>
 .flow-container {
-  width: 100vw;
+  width: 80vw;
   height: 80vh;
 }
 
@@ -258,5 +364,12 @@ function closeModal() {
   padding: 6px 14px;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.main-container {
+  display: flex; /* Activates Flexbox layout */
+  flex-direction: row; /* Aligns children horizontally (default) */
+  gap: 20px; /* Adds clean spacing between the side-by-side divs */
+  width: 100%; /* Ensures the main div spans full width */
 }
 </style>

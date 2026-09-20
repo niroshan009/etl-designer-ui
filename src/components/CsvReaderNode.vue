@@ -6,6 +6,10 @@ defineProps({
     type: String,
     default: "CSV Reader",
   },
+  data: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 </script>
 
@@ -14,6 +18,9 @@ defineProps({
     <Handle type="target" :position="Position.Top" />
     <div class="node-content">📄 {{ label }}</div>
     <Handle type="source" :position="Position.Bottom" />
+    <div v-if="data?.description" class="node-description">
+      {{ data.description }}
+    </div>
   </div>
 </template>
 

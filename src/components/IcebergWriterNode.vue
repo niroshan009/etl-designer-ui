@@ -6,6 +6,10 @@ defineProps({
     type: String,
     default: "Iceberg Writer",
   },
+  data: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 </script>
 
@@ -16,6 +20,9 @@ defineProps({
 
     <div class="node-content"> {{ label }}</div>
     <Handle type="source" :position="Position.Bottom" />
+    <div v-if="data?.description" class="node-description">
+      {{ data.description }}
+    </div>
   </div>
 </template>
 
