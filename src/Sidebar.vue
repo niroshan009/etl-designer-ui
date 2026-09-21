@@ -6,7 +6,7 @@ const { onDragStart } = useDragAndDrop()
 
 <template>
   <aside>
-    <div class="description">You can drag these nodes to the pane.</div>
+    <div class="description">Drag below components to yout ETL flow</div>
 
     <div class="nodes">
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'csvreader')">CSV Reader</div>

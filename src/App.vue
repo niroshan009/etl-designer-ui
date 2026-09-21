@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { VueFlow, MarkerType, useVueFlow } from "@vue-flow/core";
+import { VueFlow, MarkerType, useVueFlow, Panel } from "@vue-flow/core";
 import DropzoneBackground from "./DropzoneBackground.vue";
 import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
@@ -16,8 +16,7 @@ import { Markdown } from "@comark/vue";
 
 import githubLight from "@shikijs/themes/github-light";
 import githubDark from "@shikijs/themes/github-dark";
-import shiki from 'comark/plugins/shiki'
-
+import shiki from "comark/plugins/shiki";
 
 const { onConnect, addEdges, onNodesChange } = useVueFlow();
 
@@ -213,124 +212,141 @@ const addRow = () => {
 
 
 <template>
-  <div class="main-container">
-    <div class="flow-container" @drop="onDrop">
-      <VueFlow
-        :nodes="nodes"
-        :edges="edges"
-        @node-click="handleNodeClick"
-        connection-line-type="smoothstep"
-        @edge-click="handleEdgeClick"
+  <div class="app-layout">
+    <div class="main-container">
+      <!-- Flow Workspace Area -->
+      <div
+        class="flow-container"
+        @drop="onDrop"
         @dragover="onDragOver"
         @dragleave="onDragLeave"
       >
-        <template #node-csvreader="nodeProps">
-          <CsvReaderNode v-bind="nodeProps" />
-        </template>
-        <template #node-filter="nodeProps">
-          <FilterNode v-bind="nodeProps" />
-        </template>
-        <template #node-icebergwriter="nodeProps">
-          <IcebergWriterNode v-bind="nodeProps" />
-        </template>
-        <template #node-join="nodeProps">
-          <JoinNode v-bind="nodeProps" />
-        </template>
-        <DropzoneBackground
-          :style="{
-            backgroundColor: isDragOver ? '#e7f3ff' : 'transparent',
-            transition: 'background-color 0.2s ease',
-          }"
+        <VueFlow
+          :nodes="nodes"
+          :edges="edges"
+          connection-line-type="smoothstep"
+          @node-click="handleNodeClick"
+          @edge-click="handleEdgeClick"
         >
-        </DropzoneBackground>
-      </VueFlow>
+          <!-- Custom Node Templates -->
+          <template #node-csvreader="nodeProps">
+            <CsvReaderNode v-bind="nodeProps" />
+          </template>
+          <template #node-filter="nodeProps">
+            <FilterNode v-bind="nodeProps" />
+          </template>
+          <template #node-icebergwriter="nodeProps">
+            <IcebergWriterNode v-bind="nodeProps" />
+          </template>
+          <template #node-join="nodeProps">
+            <JoinNode v-bind="nodeProps" />
+          </template>
 
-      <Sidebar />
-      <button @click="sendData">Generate</button>
+          <!-- Dropzone Highlight -->
+          <DropzoneBackground
+            :style="{
+              backgroundColor: isDragOver ? '#e7f3ff' : 'transparent',
+              transition: 'background-color 0.2s ease',
+            }"
+          />
 
-      <div v-if="isModalOpen" class="modal-backdrop" @click.self="closeModal">
-        <div class="modal-content">
-          <h3>Configure {{ selectedNode?.type }} Node</h3>
-          <p class="node-id">ID: {{ selectedNode?.id }}</p>
+          <!-- Floating Overlay Panel for Sidebar & Action Buttons -->
+          <Panel position="top-left" class="controls-panel">
+            <Sidebar />
+          </Panel>
+        </VueFlow>
 
-          <div class="form-group">
-            <label>Description / Metadata:</label>
-            <textarea
-              v-model="nodeDescriptionInput"
-              placeholder="Enter description..."
-              rows="4"
-            ></textarea>
+        <!-- Node Configuration Modal -->
+        <div v-if="isModalOpen" class="modal-backdrop" @click.self="closeModal">
+          <div class="modal-content">
+            <h3>Configure {{ selectedNode?.type }} Node</h3>
+            <p class="node-id">ID: {{ selectedNode?.id }}</p>
+
+            <div class="form-group">
+              <label>Description / Metadata:</label>
+              <textarea
+                v-model="nodeDescriptionInput"
+                placeholder="Enter description..."
+                rows="4"
+              ></textarea>
+            </div>
+
+            <div class="modal-actions">
+              <button class="btn-cancel" @click="closeModal">Cancel</button>
+              <button class="btn-save" @click="saveNodeData">Save</button>
+            </div>
           </div>
+        </div>
 
-          <div class="modal-actions">
-            <button class="btn-cancel" @click="closeModal">Cancel</button>
-            <button class="btn-save" @click="saveNodeData">Save</button>
+        <!-- Edge Configuration Modal -->
+        <div
+          v-if="isEdgeModalOpen"
+          class="modal-backdrop"
+          @click.self="closeEdgeModal"
+        >
+          <div class="modal-content">
+            <h3>Edit Edge ({{ selectedEdge?.id }})</h3>
+            <div class="form-group">
+              <label>Edge Name / Label:</label>
+              <input
+                v-model="edgeLabelInput"
+                type="text"
+                placeholder="e.g., Success Flow"
+              />
+            </div>
+            <div class="modal-actions">
+              <button class="btn-cancel" @click="closeEdgeModal">Cancel</button>
+              <button class="btn-save" @click="saveEdgeData">Save</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div
-        v-if="isEdgeModalOpen"
-        class="modal-backdrop"
-        @click.self="closeEdgeModal"
-      >
-        <div class="modal-content">
-          <h3>Edit Edge ({{ selectedEdge?.id }})</h3>
-          <div class="form-group">
-            <label>Edge Name / Label:</label>
-            <input
-              v-model="edgeLabelInput"
-              type="text"
-              placeholder="e.g., Success Flow"
-            />
-          </div>
-          <div class="modal-actions">
-            <button @click="closeEdgeModal">Cancel</button>
-            <button class="btn-save" @click="saveEdgeData">Save</button>
-          </div>
+      <!-- Configurations Table Panel -->
+      <div class="config-table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Configuration</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="config in configuration" :key="config.id">
+              <td>
+                <input
+                  v-model="config.config"
+                  type="text"
+                  placeholder="Enter name"
+                />
+              </td>
+              <td>
+                <input
+                  v-model="config.value"
+                  type="text"
+                  placeholder="Enter value"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn-add" @click="addRow">Add Configuration</button>
+        <div>
+          Generate the python script
+          <button class="btn-generate" @click="sendData">Generate</button>
         </div>
       </div>
     </div>
-    <div>
-      <table>
-        <thead>
-          <tr>
-            <th>Configuration</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="config in configuration" :key="config.id">
-            <td>
-              <input
-                type="text"
-                v-model="config.config"
-                placeholder="Enter name"
-              />
-            </td>
-            <td>
-              <input
-                type="text"
-                v-model="config.value"
-                placeholder="Enter role"
-              />
-            </td>
-          </tr>
-        </tbody>
-        <button @click="addRow()">Add Configuration</button>
-      </table>
-    </div>
-  </div>
-  <div v-if="isOpen" class="modal-overlay" @click.self="closeMDModal">
-    <div class="modal-content">
-      <!-- Close Button -->
-      <button class="close-btn" @click="closeMDModal">&times;</button>
 
-      <!-- Markdown View Area -->
-      <div class="markdown-body">
-        <Suspense>
-          <Markdown :plugins="plugins" :value="markdownText" />
-        </Suspense>
+    <!-- Markdown Modal Viewer -->
+    <div v-if="isOpen" class="modal-overlay" @click.self="closeMDModal">
+      <div class="modal-content">
+        <button class="close-btn" @click="closeMDModal">&times;</button>
+        <div class="markdown-body">
+          <Suspense>
+            <Markdown :plugins="plugins" :value="markdownText" />
+          </Suspense>
+        </div>
       </div>
     </div>
   </div>
@@ -468,5 +484,67 @@ const addRow = () => {
   padding: 10px 20px;
   font-size: 16px;
   cursor: pointer;
+}
+
+/* Container Layouts */
+.app-layout {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Row layout: Workspace on left (80%), Config Panel on right (20%) */
+.main-container {
+  display: flex;
+  flex-direction: row; /* Align side-by-side */
+  width: 100%;
+  height: 100%;
+}
+
+/* Main VueFlow Workspace taking 80% viewport width */
+.flow-container {
+  position: relative;
+  width: 80vw;
+  flex-basis: 80vw;
+  height: 100%;
+}
+
+/* VueFlow Panel Controls Overlay */
+.controls-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+/* Modal Stacking */
+.modal-backdrop,
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000; /* Stacks reliably above canvas */
+}
+
+.config-table-container {
+  width: 20vw;
+  flex-basis: 20vw;
+  height: 100%;
+  overflow-y: auto; /* Adds scrollbar if table content exceeds height */
+  padding: 16px;
+  box-sizing: border-box;
+  border-left: 1px solid #e2e8f0;
+  background-color: #f8fafc;
 }
 </style>

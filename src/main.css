@@ -26,8 +26,9 @@ body,
 }
 
 .dnd-flow {
-    width: 80vw;
-    height: 60vh;
+    flex-direction:column;
+    display:flex;
+    height:100%
 }
 
 .dnd-flow aside {
