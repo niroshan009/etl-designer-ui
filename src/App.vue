@@ -304,7 +304,7 @@ const addRow = () => {
 
       <!-- Configurations Table Panel -->
       <div class="config-table-container">
-        <table>
+        <table class="fit-table">
           <thead>
             <tr>
               <th>Configuration</th>
@@ -318,6 +318,7 @@ const addRow = () => {
                   v-model="config.config"
                   type="text"
                   placeholder="Enter name"
+                  class="cell-input" 
                 />
               </td>
               <td>
@@ -325,6 +326,7 @@ const addRow = () => {
                   v-model="config.value"
                   type="text"
                   placeholder="Enter value"
+                  class="cell-input" 
                 />
               </td>
             </tr>
@@ -505,8 +507,8 @@ const addRow = () => {
 /* Main VueFlow Workspace taking 80% viewport width */
 .flow-container {
   position: relative;
-  width: 80vw;
-  flex-basis: 80vw;
+  width: 70vw;
+  flex-basis: 70vw;
   height: 100%;
 }
 
@@ -538,13 +540,23 @@ const addRow = () => {
 }
 
 .config-table-container {
-  width: 20vw;
-  flex-basis: 20vw;
+  width: 30vw;
+  flex-basis: 30vw;
   height: 100%;
   overflow-y: auto; /* Adds scrollbar if table content exceeds height */
   padding: 16px;
   box-sizing: border-box;
   border-left: 1px solid #e2e8f0;
   background-color: #f8fafc;
+}
+.fit-table {
+  width: 100%;
+  table-layout: fixed; /* Prevents cells from overflowing past content bounds */
+}
+
+.cell-input {
+  width: 100%;
+  box-sizing: border-box; /* Includes padding & border in the 100% width calculation */
+  display: block;        /* Removes baseline gap alignments */
 }
 </style>
