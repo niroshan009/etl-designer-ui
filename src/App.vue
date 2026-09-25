@@ -162,17 +162,13 @@ function deleteEdge() {
   closeEdgeModal();
 }
 
-function deleteNode(){
+function deleteNode() {
+
   
   closeModal();
 }
 
 const sendData = async () => {
-  console.log("sending data");
-  console.log(edges.value);
-  console.log(nodes.value);
-  console.log(configuration.value);
-
   const url = "http://localhost:8080/etl/create";
   const payload = {
     edges: edges.value,
@@ -180,7 +176,6 @@ const sendData = async () => {
     configuration: configuration.value,
   };
 
-  console.log(payload);
   try {
     isLoading.value = true;
     const response = await fetch(url, {
@@ -196,14 +191,11 @@ const sendData = async () => {
     }
 
     const data = await response.text();
-    console.log(data);
     markdownText.value = await parseMarkdown(data, {
       plugins: [shiki()],
     });
     isOpen.value = true;
   } catch (error) {
-    console.log("error occured");
-    console.log(error);
     errorMessage.value = error.message; // Handle errors
   } finally {
     isLoading.value = false;
