@@ -18,7 +18,7 @@ import githubLight from "@shikijs/themes/github-light";
 import githubDark from "@shikijs/themes/github-dark";
 import shiki from "comark/plugins/shiki";
 
-const { onConnect, addEdges, onNodesChange, removeEdges } = useVueFlow();
+const { onConnect, addEdges, onNodesChange, removeEdges, removeNodes } = useVueFlow();
 
 const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
@@ -163,8 +163,10 @@ function deleteEdge() {
 }
 
 function deleteNode() {
-
-  
+  if (!selectedNode.value) return;
+  const nodeToDelete = selectedNode.value;
+  edges.value = edges.value.filter((e) =>  e.source != nodeToDelete.id && e.target != nodeToDelete.id )
+  removeNodes(nodeToDelete, true);
   closeModal();
 }
 
