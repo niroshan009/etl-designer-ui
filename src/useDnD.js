@@ -96,12 +96,7 @@ export default function useDragAndDrop() {
       y: event.clientY,
     })
     const type = draggedType.value || 'default'
-    console.log('-------')
-    console.log(type)
     const nodeId = getId(type)
-    console.log("=====")
-    console.log(nodeId);
-
 
     const newNode = {
       id: nodeId,

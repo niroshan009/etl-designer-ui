@@ -18,7 +18,7 @@ import githubLight from "@shikijs/themes/github-light";
 import githubDark from "@shikijs/themes/github-dark";
 import shiki from "comark/plugins/shiki";
 
-const { onConnect, addEdges, onNodesChange } = useVueFlow();
+const { onConnect, addEdges, onNodesChange, removeEdges } = useVueFlow();
 
 const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
@@ -70,6 +70,7 @@ onConnect((connection) => {
 
   const customEdge = {
     ...connection,
+    id: connection.source + "_" + connection.target,
     type: "smoothstep",
     label: connection.source + "_" + connection.target,
     animated: true,
@@ -80,6 +81,7 @@ onConnect((connection) => {
   addEdges(customEdge);
 
   const newEdge = {
+    id: connection.source + "_" + connection.target,
     source: connection.source,
     target: connection.target,
     label: connection.source + "_" + connection.target,
@@ -151,6 +153,18 @@ function closeModal() {
   isModalOpen.value = false;
   selectedNode.value = null;
   nodeDescriptionInput.value = "";
+}
+
+function deleteEdge() {
+  const edg = edges.value.find((i) => i.id = selectedEdge.value.id);
+  edges.value = edges.value.filter((i) => i.id != selectedEdge.id);
+  removeEdges(edg);
+  closeEdgeModal();
+}
+
+function deleteNode(){
+  
+  closeModal();
 }
 
 const sendData = async () => {
@@ -272,6 +286,7 @@ const addRow = () => {
             </div>
 
             <div class="modal-actions">
+              <button class="btn-save" @click="deleteNode">Delete Component</button>
               <button class="btn-cancel" @click="closeModal">Cancel</button>
               <button class="btn-save" @click="saveNodeData">Save</button>
             </div>
@@ -295,6 +310,7 @@ const addRow = () => {
               />
             </div>
             <div class="modal-actions">
+              <button class="btn-save" @click="deleteEdge">Delete Connector</button>
               <button class="btn-cancel" @click="closeEdgeModal">Cancel</button>
               <button class="btn-save" @click="saveEdgeData">Save</button>
             </div>
