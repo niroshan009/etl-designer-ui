@@ -6,6 +6,7 @@ import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
 import IcebergWriterNode from "./components/IcebergWriterNode.vue";
 import JoinNode from "./components/JoinNode.vue";
+import LeftAntiJoin from "./components/LeftAntiJoin.vue";
 
 import Sidebar from "./Sidebar.vue";
 import useDragAndDrop from "./useDnD";
@@ -46,7 +47,7 @@ const plugins = [
   }),
 ];
 
-const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter"];
+const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter", "left-anti-join"];
 
 onNodesChange((changes) => {
   changes.forEach((change) => {
@@ -248,6 +249,9 @@ const addRow = () => {
           </template>
           <template #node-join="nodeProps">
             <JoinNode v-bind="nodeProps" />
+          </template>
+          <template #node-left-anti-join="nodeProps">
+            <LeftAntiJoin v-bind="nodeProps" />
           </template>
 
           <!-- Dropzone Highlight -->

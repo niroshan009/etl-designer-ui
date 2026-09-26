@@ -13,6 +13,7 @@ const { onDragStart } = useDragAndDrop()
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'filter')">Filter</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'icebergwriter')">Iceberg Writer</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'join')">Join</div>
+      <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'left-anti-join')">Left Anti Join</div>
     </div>
   </aside>
 </template>
