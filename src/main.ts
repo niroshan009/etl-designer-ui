@@ -4,4 +4,11 @@ import App from './App.vue'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 
-createApp(App).mount('#app')
+import 'vue-markdown-shiki/style'
+import markdownPlugin from 'vue-markdown-shiki'
+
+
+createApp(App)
+  .use(markdownPlugin)
+  .mount('#app')
+

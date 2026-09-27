@@ -19,7 +19,11 @@ import githubLight from "@shikijs/themes/github-light";
 import githubDark from "@shikijs/themes/github-dark";
 import shiki from "comark/plugins/shiki";
 
-const { onConnect, addEdges, onNodesChange, removeEdges, removeNodes } = useVueFlow();
+
+import { VueMarkdownIt } from 'vue-markdown-shiki'
+
+
+const { onConnect, addEdges, onNodesChange, removeEdges, removeNodes, updateEdge, findEdge } = useVueFlow();
 
 const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
@@ -29,6 +33,7 @@ const configuration = ref([]);
 
 const isModalOpen = ref(false);
 const isEdgeModalOpen = ref(false);
+const isPopupRefData = ref(false);
 const selectedNode = ref(null);
 const selectedEdge = ref(null);
 const edgeLabelInput = ref("");
@@ -72,11 +77,13 @@ onConnect((connection) => {
   const customEdge = {
     ...connection,
     id: connection.source + "_" + connection.target,
-    type: "smoothstep",
+    type: "step",
     label: connection.source + "_" + connection.target,
-    animated: true,
+    animated: false,
     markerEnd: MarkerType.ArrowClosed,
-    data: { createdAt: Date.now() },
+    data: { createdAt: Date.now(),
+      isRefData: false
+     },
   };
 
   addEdges(customEdge);
@@ -86,6 +93,7 @@ onConnect((connection) => {
     source: connection.source,
     target: connection.target,
     label: connection.source + "_" + connection.target,
+    isRefData: false
   };
   edges.value.push(newEdge);
   console.log(customEdge);
@@ -96,8 +104,10 @@ onConnect((connection) => {
 function handleEdgeClick({ edge }) {
   selectedEdge.value = edge;
   edgeLabelInput.value = edge.label || "";
+  isPopupRefData.value = edge.data.isRefData;
+  
   isEdgeModalOpen.value = true;
-  console.log(selectedEdge);
+ 
 }
 function saveEdgeData() {
   if (!selectedEdge.value) return;
@@ -111,15 +121,30 @@ function saveEdgeData() {
   );
   edg.label = edgeLabelInput.value;
   edg.source = selectedEdge.value.source;
+  edg.isRefData = isPopupRefData.value;
 
-  console.log("=====");
+  console.log('---------');
   console.log(edg);
+ 
 
+
+  const existingEdge = findEdge(edg.id);
+  existingEdge.animated =  edg.isRefData;
+  existingEdge.data = {
+    ...existingEdge.data,
+    isRefData: edg.isRefData
+  }
+
+  console.log("existing edge")
+  console.log(existingEdge)
   closeEdgeModal();
+  
+
 }
 function closeEdgeModal() {
   isEdgeModalOpen.value = false;
   selectedEdge.value = null;
+  isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
@@ -194,9 +219,7 @@ const sendData = async () => {
     }
 
     const data = await response.text();
-    markdownText.value = await parseMarkdown(data, {
-      plugins: [shiki()],
-    });
+    markdownText.value = data;
     isOpen.value = true;
   } catch (error) {
     errorMessage.value = error.message; // Handle errors
@@ -306,7 +329,9 @@ const addRow = () => {
                 type="text"
                 placeholder="e.g., Success Flow"
               />
+               <input type="checkbox" v-model="isPopupRefData" />
             </div>
+           
             <div class="modal-actions">
               <button class="btn-save" @click="deleteEdge">Delete Connector</button>
               <button class="btn-cancel" @click="closeEdgeModal">Cancel</button>
@@ -359,9 +384,12 @@ const addRow = () => {
       <div class="modal-content">
         <button class="close-btn" @click="closeMDModal">&times;</button>
         <div class="markdown-body">
-          <Suspense>
+
+              <VueMarkdownIt :content="markdownText" />
+
+          <!-- <Suspense>
             <Markdown :plugins="plugins" :value="markdownText" />
-          </Suspense>
+          </Suspense> -->
         </div>
       </div>
     </div>
