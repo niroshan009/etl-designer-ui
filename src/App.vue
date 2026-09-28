@@ -38,6 +38,7 @@ const selectedNode = ref(null);
 const selectedEdge = ref(null);
 const edgeLabelInput = ref("");
 const nodeDescriptionInput = ref("");
+const scriptName = ref("");
 
 const isOpen = ref(false);
 const isLoading = ref(false);
@@ -202,6 +203,7 @@ const sendData = async () => {
     edges: edges.value,
     nodes: nodes.value,
     configuration: configuration.value,
+    scriptName: scriptName.value
   };
 
   try {
@@ -240,6 +242,35 @@ const saveRow = (item, index) => {
 const addRow = () => {
   configuration.value.push({ config: "", value: "" });
 };
+
+const submitJob = async () => {
+  const url = "http://localhost:8080/etl/submitjob";
+  const payload = {
+    scriptName: scriptName.value
+  };
+
+  try {
+    isLoading.value = true;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    await response.text();
+
+  } catch (error) {
+    errorMessage.value = error.message; // Handle errors
+  } finally {
+    isLoading.value = false;
+  }
+}
 </script>
 
 
@@ -343,6 +374,11 @@ const addRow = () => {
 
       <!-- Configurations Table Panel -->
       <div class="config-table-container">
+        Script Name: <input
+                  v-model="scriptName"
+                  type="text"
+                  placeholder="Enter Script name"
+                />
         <table class="fit-table">
           <thead>
             <tr>
@@ -384,13 +420,9 @@ const addRow = () => {
       <div class="modal-content">
         <button class="close-btn" @click="closeMDModal">&times;</button>
         <div class="markdown-body">
-
               <VueMarkdownIt :content="markdownText" />
-
-          <!-- <Suspense>
-            <Markdown :plugins="plugins" :value="markdownText" />
-          </Suspense> -->
         </div>
+        <button @click="submitJob">Submit</button>
       </div>
     </div>
   </div>
