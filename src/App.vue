@@ -7,6 +7,8 @@ import FilterNode from "./components/FilterNode.vue";
 import IcebergWriterNode from "./components/IcebergWriterNode.vue";
 import JoinNode from "./components/JoinNode.vue";
 import LeftAntiJoin from "./components/LeftAntiJoin.vue";
+import DropColumn from "./components/DropColumn.vue";
+import LitColumn from "./components/LitColumn.vue";
 
 import Sidebar from "./Sidebar.vue";
 import useDragAndDrop from "./useDnD";
@@ -53,7 +55,8 @@ const plugins = [
   }),
 ];
 
-const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter", "left-anti-join"];
+const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter", "left-anti-join", "drop-column"];
+const KEY_VALUE_NODE_TYPE = ["lit-column"]
 
 onNodesChange((changes) => {
   changes.forEach((change) => {
@@ -152,6 +155,7 @@ function handleNodeClick({ node }) {
     console.log(`Node type "${node.type}" skipped description edit.`);
     return;
   }
+  
   selectedNode.value = node;
   nodeDescriptionInput.value = node.data?.description || "";
   isModalOpen.value = true;
@@ -307,6 +311,12 @@ const submitJob = async () => {
           <template #node-left-anti-join="nodeProps">
             <LeftAntiJoin v-bind="nodeProps" />
           </template>
+          <template #node-drop-column="nodeProps">
+            <DropColumn v-bind="nodeProps" />
+          </template>
+          <template #node-lit-column="nodeProps">
+            <LitColumn v-bind="nodeProps" />
+          </template>
 
           <!-- Dropzone Highlight -->
           <DropzoneBackground
@@ -360,7 +370,10 @@ const submitJob = async () => {
                 type="text"
                 placeholder="e.g., Success Flow"
               />
-               <input type="checkbox" v-model="isPopupRefData" />
+              <div>
+               <input type="checkbox" id="reference" v-model="isPopupRefData" />
+               <label for="reference">Is Reference Dataset</label>
+               </div>
             </div>
            
             <div class="modal-actions">
