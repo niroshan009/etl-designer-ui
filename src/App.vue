@@ -31,7 +31,21 @@ const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
 const nodes = ref([]);
 const edges = ref([]);
-const configuration = ref([]);
+const configuration = ref([{config:"spark.sql.extensions", value: "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"},
+{config:"spark.sql.catalog.demo", value: "org.apache.iceberg.spark.SparkCatalog"},
+{config:"spark.sql.catalog.demo.type", value: "rest"},
+{config:"spark.sql.catalog.demo.uri", value: "http://iceberg-rest.orb.local:8181"},
+{config:"spark.sql.catalog.demo.s3.endpoint", value: "http://rustfs.orb.local:9000"},
+{config:"spark.sql.catalog.demo.s3.path-style-access", value: "true"},
+{config:"spark.sql.catalog.demo.s3.access-key-id", value: "rustfsadmin"},
+{config:"spark.sql.catalog.demo.s3.secret-access-key", value: "rustfsadmin"},
+{config:"spark.sql.catalog.demo.warehouse", value: "s3://warehouse/"},
+{config:"spark.hadoop.fs.s3.impl", value: "org.apache.hadoop.fs.s3a.S3AFileSystem"},
+{config:"spark.hadoop.fs.s3a.endpoint", value: "http://rustfs.orb.local:9000"},
+{config:"spark.hadoop.fs.s3a.access.key", value: "rustfsadmin"},
+{config:"spark.hadoop.fs.s3a.secret.key", value: "rustfsadmin"},
+{config:"spark.hadoop.fs.s3a.path.style.access", value: "true"},
+{config:"spark.hadoop.fs.s3a.aws.credentials.provider", value: "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"}]);
 
 const isModalOpen = ref(false);
 const isEdgeModalOpen = ref(false);
@@ -61,8 +75,6 @@ const KEY_VALUE_NODE_TYPE = ["lit-column"]
 onNodesChange((changes) => {
   changes.forEach((change) => {
     if (change.type === "add") {
-      console.log("Node added to pane:", change.item);
-      console.log(change.item.id);
       const payload = {
         id: change.item.id,
         type: change.item.type,
@@ -70,13 +82,11 @@ onNodesChange((changes) => {
       };
       nodes.value.push(payload);
     } else {
-      console.log("event type :" + change.type);
     }
   });
 });
 
 onConnect((connection) => {
-  console.log("Edge connection attempted:", connection);
 
   const customEdge = {
     ...connection,
@@ -100,7 +110,6 @@ onConnect((connection) => {
     isRefData: false
   };
   edges.value.push(newEdge);
-  console.log(customEdge);
 
   console.log("Edge successfully added!");
 });
@@ -196,13 +205,16 @@ function deleteEdge() {
 function deleteNode() {
   if (!selectedNode.value) return;
   const nodeToDelete = selectedNode.value;
-  edges.value = edges.value.filter((e) =>  e.source != nodeToDelete.id && e.target != nodeToDelete.id )
+  edges.value = edges.value.filter((e) =>  e.source != nodeToDelete.id && e.target != nodeToDelete.id );
+  nodes.value = nodes.value.filter((node) => node.id !== nodeToDelete.id)
+  console.log(nodes.value);
+
   removeNodes(nodeToDelete, true);
   closeModal();
 }
 
 const sendData = async () => {
-  const url = "http://localhost:8080/etl/create";
+  const url = "http://localhost:8081/etl/create";
   const payload = {
     edges: edges.value,
     nodes: nodes.value,
@@ -248,7 +260,7 @@ const addRow = () => {
 };
 
 const submitJob = async () => {
-  const url = "http://localhost:8080/etl/submitjob";
+  const url = "http://localhost:8081/etl/submitjob";
   const payload = {
     scriptName: scriptName.value
   };
@@ -545,7 +557,7 @@ const submitJob = async () => {
   padding: 30px;
   border-radius: 8px;
   width: 90%;
-  max-width: 600px;
+  max-width: 80vw;
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
