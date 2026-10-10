@@ -160,7 +160,7 @@ function closeEdgeModal() {
   isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
-  if (node.type === "csvreader" || node.type === "filter") return;
+  if (["csvreader", "filter", "left-anti-join"].includes(node.type)) return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
     console.log(`Node type "${node.type}" skipped description edit.`);
     return;
@@ -342,7 +342,10 @@ const submitJob = async () => {
             <JoinNode v-bind="nodeProps" />
           </template>
           <template #node-left-anti-join="nodeProps">
-            <LeftAntiJoin v-bind="nodeProps" />
+            <LeftAntiJoin
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+            />
           </template>
           <template #node-drop-column="nodeProps">
             <DropColumn v-bind="nodeProps" />
