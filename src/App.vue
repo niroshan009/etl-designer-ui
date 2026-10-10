@@ -25,7 +25,7 @@ import shiki from "comark/plugins/shiki";
 import { VueMarkdownIt } from 'vue-markdown-shiki'
 
 
-const { onConnect, addEdges, onNodesChange, removeEdges, removeNodes, updateEdge, findEdge } = useVueFlow();
+const { onConnect, addEdges, onNodesChange, removeEdges, removeNodes, updateEdge, findEdge, findNode } = useVueFlow();
 
 const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
@@ -78,7 +78,7 @@ onNodesChange((changes) => {
       const payload = {
         id: change.item.id,
         type: change.item.type,
-        description: "",
+        ...(change.item.type !== "csvreader" ? { description: "" } : {}),
       };
       nodes.value.push(payload);
     } else {
@@ -160,14 +160,29 @@ function closeEdgeModal() {
   isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
+  if (node.type === "csvreader") return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
     console.log(`Node type "${node.type}" skipped description edit.`);
     return;
   }
-  
+
   selectedNode.value = node;
   nodeDescriptionInput.value = node.data?.description || "";
   isModalOpen.value = true;
+}
+
+function saveCsvReaderConfig(nodeId, config) {
+  const flowNode = findNode(nodeId);
+  if (flowNode) {
+    Object.assign(flowNode.data, config);
+  }
+
+  const nodeRecord = nodes.value.find((node) => node.id === nodeId);
+  if (nodeRecord) {
+    Object.assign(nodeRecord, config, {
+      data: { ...nodeRecord.data, ...config },
+    });
+  }
 }
 
 function saveNodeData() {
@@ -309,7 +324,10 @@ const submitJob = async () => {
         >
           <!-- Custom Node Templates -->
           <template #node-csvreader="nodeProps">
-            <CsvReaderNode v-bind="nodeProps" />
+            <CsvReaderNode
+              v-bind="nodeProps"
+              @update-config="saveCsvReaderConfig(nodeProps.id, $event)"
+            />
           </template>
           <template #node-filter="nodeProps">
             <FilterNode v-bind="nodeProps" />
