@@ -160,7 +160,7 @@ function closeEdgeModal() {
   isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
-  if (node.type === "csvreader") return;
+  if (node.type === "csvreader" || node.type === "filter") return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
     console.log(`Node type "${node.type}" skipped description edit.`);
     return;
@@ -171,7 +171,7 @@ function handleNodeClick({ node }) {
   isModalOpen.value = true;
 }
 
-function saveCsvReaderConfig(nodeId, config) {
+function saveNodeConfig(nodeId, config) {
   const flowNode = findNode(nodeId);
   if (flowNode) {
     Object.assign(flowNode.data, config);
@@ -326,11 +326,14 @@ const submitJob = async () => {
           <template #node-csvreader="nodeProps">
             <CsvReaderNode
               v-bind="nodeProps"
-              @update-config="saveCsvReaderConfig(nodeProps.id, $event)"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
             />
           </template>
           <template #node-filter="nodeProps">
-            <FilterNode v-bind="nodeProps" />
+            <FilterNode
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+            />
           </template>
           <template #node-icebergwriter="nodeProps">
             <IcebergWriterNode v-bind="nodeProps" />
