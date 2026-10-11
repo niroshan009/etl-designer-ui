@@ -5,6 +5,7 @@ import DropzoneBackground from "./DropzoneBackground.vue";
 import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
 import IcebergWriterNode from "./components/IcebergWriterNode.vue";
+import DatabaseWriterNode from "./components/DatabaseWriterNode.vue";
 import JoinNode from "./components/JoinNode.vue";
 import LeftAntiJoin from "./components/LeftAntiJoin.vue";
 import DropColumn from "./components/DropColumn.vue";
@@ -69,7 +70,7 @@ const plugins = [
   }),
 ];
 
-const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter", "left-anti-join", "drop-column"];
+const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter", "databasewriter", "mysqlwriter", "left-anti-join", "drop-column"];
 const KEY_VALUE_NODE_TYPE = ["lit-column"]
 
 onNodesChange((changes) => {
@@ -160,7 +161,7 @@ function closeEdgeModal() {
   isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
-  if (["csvreader", "filter", "join", "icebergwriter", "left-anti-join", "drop-column"].includes(node.type)) return;
+  if (["csvreader", "filter", "join", "icebergwriter", "databasewriter", "mysqlwriter", "left-anti-join", "drop-column"].includes(node.type)) return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
     console.log(`Node type "${node.type}" skipped description edit.`);
     return;
@@ -358,6 +359,20 @@ const submitJob = async () => {
           </template>
           <template #node-icebergwriter="nodeProps">
             <IcebergWriterNode
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
+          </template>
+          <template #node-databasewriter="nodeProps">
+            <DatabaseWriterNode
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
+          </template>
+          <template #node-mysqlwriter="nodeProps">
+            <DatabaseWriterNode
               v-bind="nodeProps"
               @update-config="saveNodeConfig(nodeProps.id, $event)"
               @delete-node="deleteNode(nodeProps.id)"

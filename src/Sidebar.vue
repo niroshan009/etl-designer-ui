@@ -12,6 +12,7 @@ const { onDragStart } = useDragAndDrop()
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'csvreader')">CSV Reader</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'filter')">Filter</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'icebergwriter')">Iceberg Writer</div>
+      <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'databasewriter')">Database Writer</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'join')">Join</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'left-anti-join')">Left Anti Join</div>
       <div class="vue-flow__node-output" :draggable="true" @dragstart="onDragStart($event, 'drop-column')">Drop Columns</div>
