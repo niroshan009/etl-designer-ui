@@ -1,7 +1,8 @@
 <script setup>
+import { ref } from "vue";
 import { Handle, Position } from "@vue-flow/core";
 
-defineProps({
+const props = defineProps({
   label: {
     type: String,
     default: "Drop Column",
@@ -11,17 +12,64 @@ defineProps({
     default: () => ({}),
   },
 });
+
+const emit = defineEmits(["update-config"]);
+const isConfigOpen = ref(false);
+const columns = ref("");
+
+function openConfig() {
+  const savedConfig = Array.isArray(props.data?.config) ? props.data.config : [];
+  columns.value =
+    savedConfig.find((setting) => setting.key === "columns")?.value ??
+    props.data?.columns ??
+    "";
+  isConfigOpen.value = true;
+}
+
+function saveConfig() {
+  emit("update-config", {
+    config: [{ key: "columns", value: columns.value }],
+  });
+  isConfigOpen.value = false;
+}
 </script>
 
 <template>
   <div class="drop-column-node">
     <Handle type="target" :position="Position.Top" />
-    <div class="node-content"> {{ label }}</div>
+    <div class="node-content" @click="openConfig">{{ label }}</div>
     <Handle type="source" :position="Position.Bottom" />
     <div v-if="data?.description" class="node-description">
       {{ data.description }}
     </div>
   </div>
+
+  <Teleport to="body">
+    <div
+      v-if="isConfigOpen"
+      class="drop-column-config-backdrop"
+      @click.self="isConfigOpen = false"
+    >
+      <form class="drop-column-config-dialog" @submit.prevent="saveConfig">
+        <h3>Configure Drop Columns</h3>
+
+        <div class="drop-column-config-field">
+          <label for="drop-column-columns">Columns to drop</label>
+          <input
+            id="drop-column-columns"
+            v-model="columns"
+            type="text"
+            placeholder="e.g. internal_id, deprecated_name"
+          />
+        </div>
+
+        <div class="drop-column-config-actions">
+          <button type="button" @click="isConfigOpen = false">Cancel</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -35,12 +83,74 @@ defineProps({
   text-align: center;
 }
 
-.funnel-icon {
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-top: 12px solid #333; /* Change color here */
+.node-content {
+  cursor: pointer;
 }
 
+.drop-column-config-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 50%);
+}
+
+.drop-column-config-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 4px 15px rgb(0 0 0 / 20%);
+}
+
+.drop-column-config-dialog h3 {
+  margin: 0;
+}
+
+.drop-column-config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drop-column-config-field label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.drop-column-config-field input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+}
+
+.drop-column-config-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.drop-column-config-actions button {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.drop-column-config-actions button[type="submit"] {
+  background: #4f46e5;
+  color: #fff;
+}
 </style>
