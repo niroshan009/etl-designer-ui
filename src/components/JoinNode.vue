@@ -1,7 +1,10 @@
 <script setup>
 import { ref } from "vue";
 import { Handle, Position } from "@vue-flow/core";
+import { Plus, Save, Trash2, X } from "@lucide/vue";
 import NodeDeleteButton from "./NodeDeleteButton.vue";
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
   label: {
@@ -134,7 +137,7 @@ function saveConfig() {
 </script>
 
 <template>
-  <div class="join-node">
+  <div v-bind="$attrs" class="join-node spark-wide">
     <Handle type="target" :position="Position.Top" />
     <NodeDeleteButton @delete="emit('delete-node')" />
     <div class="node-content" @click="openConfig">{{ label }}</div>
@@ -207,23 +210,27 @@ function saveConfig() {
               <button
                 v-if="conditions.length > 1"
                 type="button"
-                class="join-remove-condition"
+                class="action-button join-remove-condition"
                 :aria-label="`Remove condition ${index + 1}`"
                 @click="removeCondition(index)"
               >
-                Remove
+                <Trash2 aria-hidden="true" /> Remove condition
               </button>
             </div>
           </div>
         </div>
 
-        <button type="button" class="join-add-condition" @click="addCondition">
-          Add condition
+        <button type="button" class="join-add-condition action-button" @click="addCondition">
+          <Plus aria-hidden="true" /> Add condition
         </button>
 
         <div class="join-config-actions">
-          <button type="button" @click="isConfigOpen = false">Cancel</button>
-          <button type="submit">Save</button>
+          <button class="action-button" type="button" @click="isConfigOpen = false">
+            <X aria-hidden="true" /> Cancel
+          </button>
+          <button class="action-button" type="submit">
+            <Save aria-hidden="true" /> Save join
+          </button>
         </div>
       </form>
     </div>
@@ -235,10 +242,10 @@ function saveConfig() {
   position: relative;
   padding: 10px 15px;
   border-radius: 8px;
-  background: #6366f1;
-  color: white;
+  background: var(--spark-node-background);
+  color: #fff;
   font-weight: bold;
-  border: 2px solid #4338ca;
+  border: 2px solid var(--spark-node-border);
   text-align: center;
 }
 

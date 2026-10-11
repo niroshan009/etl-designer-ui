@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { VueFlow, MarkerType, useVueFlow, Panel } from "@vue-flow/core";
+import { Plus, Save, Send, Trash2, WandSparkles, X } from "@lucide/vue";
 import DropzoneBackground from "./DropzoneBackground.vue";
 import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
@@ -161,7 +162,7 @@ function closeEdgeModal() {
   isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
-  if (["csvreader", "filter", "join", "icebergwriter", "databasewriter", "mysqlwriter", "left-anti-join", "drop-column"].includes(node.type)) return;
+  if (["csvreader", "filter", "join", "icebergwriter", "databasewriter", "mysqlwriter", "left-anti-join", "drop-column", "lit-column"].includes(node.type)) return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
     console.log(`Node type "${node.type}" skipped description edit.`);
     return;
@@ -401,7 +402,11 @@ const submitJob = async () => {
             />
           </template>
           <template #node-lit-column="nodeProps">
-            <LitColumn v-bind="nodeProps" />
+            <LitColumn
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
           </template>
 
           <!-- Dropzone Highlight -->
@@ -434,9 +439,15 @@ const submitJob = async () => {
             </div>
 
             <div class="modal-actions">
-              <button class="btn-save" @click="deleteNode">Delete Component</button>
-              <button class="btn-cancel" @click="closeModal">Cancel</button>
-              <button class="btn-save" @click="saveNodeData">Save</button>
+              <button class="btn-save action-button" @click="deleteNode">
+                <Trash2 aria-hidden="true" /> Delete component
+              </button>
+              <button class="btn-cancel action-button" @click="closeModal">
+                <X aria-hidden="true" /> Cancel
+              </button>
+              <button class="btn-save action-button" @click="saveNodeData">
+                <Save aria-hidden="true" /> Save description
+              </button>
             </div>
           </div>
         </div>
@@ -463,9 +474,15 @@ const submitJob = async () => {
             </div>
            
             <div class="modal-actions">
-              <button class="btn-save" @click="deleteEdge">Delete Connector</button>
-              <button class="btn-cancel" @click="closeEdgeModal">Cancel</button>
-              <button class="btn-save" @click="saveEdgeData">Save</button>
+              <button class="btn-save action-button" @click="deleteEdge">
+                <Trash2 aria-hidden="true" /> Delete connector
+              </button>
+              <button class="btn-cancel action-button" @click="closeEdgeModal">
+                <X aria-hidden="true" /> Cancel
+              </button>
+              <button class="btn-save action-button" @click="saveEdgeData">
+                <Save aria-hidden="true" /> Save connector
+              </button>
             </div>
           </div>
         </div>
@@ -506,10 +523,14 @@ const submitJob = async () => {
             </tr>
           </tbody>
         </table>
-        <button class="btn-add" @click="addRow">Add Configuration</button>
+        <button class="btn-add action-button" @click="addRow">
+          <Plus aria-hidden="true" /> Add configuration
+        </button>
         <div>
           Generate the python script
-          <button class="btn-generate" @click="sendData">Generate</button>
+          <button class="btn-generate action-button" @click="sendData">
+            <WandSparkles aria-hidden="true" /> Generate script
+          </button>
         </div>
       </div>
     </div>
@@ -517,11 +538,15 @@ const submitJob = async () => {
     <!-- Markdown Modal Viewer -->
     <div v-if="isOpen" class="modal-overlay" @click.self="closeMDModal">
       <div class="modal-content">
-        <button class="close-btn" @click="closeMDModal">&times;</button>
+        <button class="close-btn" aria-label="Close generated script" title="Close" @click="closeMDModal">
+          <X aria-hidden="true" />
+        </button>
         <div class="markdown-body">
               <VueMarkdownIt :content="markdownText" />
         </div>
-        <button @click="submitJob">Submit</button>
+        <button class="action-button" @click="submitJob">
+          <Send aria-hidden="true" /> Submit job
+        </button>
       </div>
     </div>
   </div>

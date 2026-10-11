@@ -1,7 +1,10 @@
 <script setup>
 import { ref } from "vue";
 import { Handle, Position } from "@vue-flow/core";
+import { Save, X } from "@lucide/vue";
 import NodeDeleteButton from "./NodeDeleteButton.vue";
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
   label: {
@@ -35,7 +38,7 @@ function saveConfig() {
 </script>
 
 <template>
-  <div class="drop-column-node">
+  <div v-bind="$attrs" class="drop-column-node spark-narrow">
     <Handle type="target" :position="Position.Top" />
     <NodeDeleteButton @delete="emit('delete-node')" />
     <div class="node-content" @click="openConfig">{{ label }}</div>
@@ -60,13 +63,17 @@ function saveConfig() {
             id="drop-column-columns"
             v-model="columns"
             type="text"
-            placeholder="e.g. internal_id, deprecated_name"
+            placeholder="e.g. ds1.internal_id, ds2.deprecated_name"
           />
         </div>
 
         <div class="drop-column-config-actions">
-          <button type="button" @click="isConfigOpen = false">Cancel</button>
-          <button type="submit">Save</button>
+          <button class="action-button" type="button" @click="isConfigOpen = false">
+            <X aria-hidden="true" /> Cancel
+          </button>
+          <button class="action-button" type="submit">
+            <Save aria-hidden="true" /> Save settings
+          </button>
         </div>
       </form>
     </div>
@@ -78,10 +85,10 @@ function saveConfig() {
   position: relative;
   padding: 10px 15px;
   border-radius: 8px;
-  background: #6366f1;
-  color: white;
+  background: var(--spark-node-background);
+  color: #fff;
   font-weight: bold;
-  border: 2px solid #4338ca;
+  border: 2px solid var(--spark-node-border);
   text-align: center;
 }
 

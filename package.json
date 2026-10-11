@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@comark/vue": "^0.7.0",
+    "@lucide/vue": "^1.55.0",
     "@shikijs/themes": "^4.4.3",
     "@shikijs/transformers": "^4.4.3",
     "@sveltek/rehype-shiki": "^0.31.1",

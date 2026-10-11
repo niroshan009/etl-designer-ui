@@ -6,6 +6,7 @@ import '@vue-flow/core/dist/theme-default.css'
 
 import 'vue-markdown-shiki/style'
 import markdownPlugin from 'vue-markdown-shiki'
+import './main.css'
 
 
 createApp(App)

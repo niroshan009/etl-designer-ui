@@ -1,4 +1,6 @@
 <script setup>
+import { Trash2 } from "@lucide/vue";
+
 const emit = defineEmits(["delete"]);
 </script>
 
@@ -12,7 +14,7 @@ const emit = defineEmits(["delete"]);
     @mousedown.stop
     @click.stop.prevent="emit('delete')"
   >
-    ×
+    <Trash2 :size="13" aria-hidden="true" />
   </button>
 </template>
 

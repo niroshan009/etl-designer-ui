@@ -11,6 +11,45 @@ body,
   height: 100%;
 }
 
+.spark-source {
+    --spark-node-background: #0f766e;
+    --spark-node-border: #115e59;
+}
+
+.spark-narrow {
+    --spark-node-background: #2563eb;
+    --spark-node-border: #1e40af;
+}
+
+.spark-wide {
+    --spark-node-background: #c2410c;
+    --spark-node-border: #9a3412;
+}
+
+.spark-sink {
+    --spark-node-background: #15803d;
+    --spark-node-border: #166534;
+}
+
+.spark-node-output {
+    border: 2px solid var(--spark-node-border);
+    background: var(--spark-node-background);
+    color: #fff;
+}
+
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+.action-button svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}
+
 #app {
   text-transform: uppercase;
   font-family: 'JetBrains Mono', monospace;

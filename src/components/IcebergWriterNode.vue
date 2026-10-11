@@ -1,7 +1,10 @@
 <script setup>
 import { ref } from "vue";
 import { Handle, Position } from "@vue-flow/core";
+import { Save, X } from "@lucide/vue";
 import NodeDeleteButton from "./NodeDeleteButton.vue";
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
   label: {
@@ -63,7 +66,7 @@ function saveConfig() {
 </script>
 
 <template>
-  <div class="icebergwriter-node">
+  <div v-bind="$attrs" class="icebergwriter-node spark-sink">
     <Handle type="target" :position="Position.Top" />
     <NodeDeleteButton @delete="emit('delete-node')" />
 
@@ -110,8 +113,12 @@ function saveConfig() {
         </div>
 
         <div class="iceberg-config-actions">
-          <button type="button" @click="isConfigOpen = false">Cancel</button>
-          <button type="submit">Save</button>
+          <button class="action-button" type="button" @click="isConfigOpen = false">
+            <X aria-hidden="true" /> Cancel
+          </button>
+          <button class="action-button" type="submit">
+            <Save aria-hidden="true" /> Save settings
+          </button>
         </div>
       </form>
     </div>
@@ -123,10 +130,10 @@ function saveConfig() {
   position: relative;
   padding: 10px 15px;
   border-radius: 8px;
-  background: #6366f1;
-  color: white;
+  background: var(--spark-node-background);
+  color: #fff;
   font-weight: bold;
-  border: 2px solid #4338ca;
+  border: 2px solid var(--spark-node-border);
   text-align: center;
 }
 
