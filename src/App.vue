@@ -160,7 +160,7 @@ function closeEdgeModal() {
   isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
-  if (["csvreader", "filter", "left-anti-join"].includes(node.type)) return;
+  if (["csvreader", "filter", "join", "left-anti-join"].includes(node.type)) return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
     console.log(`Node type "${node.type}" skipped description edit.`);
     return;
@@ -183,6 +183,21 @@ function saveNodeConfig(nodeId, config) {
       data: { ...nodeRecord.data, ...config },
     });
   }
+}
+
+function getJoinDatasets(nodeId) {
+  const inputIds = new Set(
+    edges.value
+      .filter((edge) => edge.target === nodeId && edge.source !== nodeId)
+      .map((edge) => edge.source),
+  );
+
+  return nodes.value
+    .filter((node) => inputIds.has(node.id))
+    .map((node) => ({
+      id: node.id,
+      label: findNode(node.id)?.data?.label ?? node.id,
+    }));
 }
 
 function saveNodeData() {
@@ -339,7 +354,11 @@ const submitJob = async () => {
             <IcebergWriterNode v-bind="nodeProps" />
           </template>
           <template #node-join="nodeProps">
-            <JoinNode v-bind="nodeProps" />
+            <JoinNode
+              v-bind="nodeProps"
+              :datasets="getJoinDatasets(nodeProps.id)"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+            />
           </template>
           <template #node-left-anti-join="nodeProps">
             <LeftAntiJoin
