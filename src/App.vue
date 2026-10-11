@@ -232,15 +232,19 @@ function deleteEdge() {
   closeEdgeModal();
 }
 
-function deleteNode() {
-  if (!selectedNode.value) return;
-  const nodeToDelete = selectedNode.value;
-  edges.value = edges.value.filter((e) =>  e.source != nodeToDelete.id && e.target != nodeToDelete.id );
-  nodes.value = nodes.value.filter((node) => node.id !== nodeToDelete.id)
-  console.log(nodes.value);
+function deleteNode(nodeId = selectedNode.value?.id) {
+  if (!nodeId) return;
+  const nodeToDelete = findNode(nodeId);
+  if (!nodeToDelete) return;
+  if (!window.confirm("Delete this node and its connected edges?")) return;
 
+  edges.value = edges.value.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
+  nodes.value = nodes.value.filter((node) => node.id !== nodeId);
   removeNodes(nodeToDelete, true);
-  closeModal();
+
+  if (selectedNode.value?.id === nodeId) {
+    closeModal();
+  }
 }
 
 const sendData = async () => {
@@ -342,18 +346,21 @@ const submitJob = async () => {
             <CsvReaderNode
               v-bind="nodeProps"
               @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
             />
           </template>
           <template #node-filter="nodeProps">
             <FilterNode
               v-bind="nodeProps"
               @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
             />
           </template>
           <template #node-icebergwriter="nodeProps">
             <IcebergWriterNode
               v-bind="nodeProps"
               @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
             />
           </template>
           <template #node-join="nodeProps">
@@ -361,18 +368,21 @@ const submitJob = async () => {
               v-bind="nodeProps"
               :datasets="getJoinDatasets(nodeProps.id)"
               @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
             />
           </template>
           <template #node-left-anti-join="nodeProps">
             <LeftAntiJoin
               v-bind="nodeProps"
               @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
             />
           </template>
           <template #node-drop-column="nodeProps">
             <DropColumn
               v-bind="nodeProps"
               @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
             />
           </template>
           <template #node-lit-column="nodeProps">

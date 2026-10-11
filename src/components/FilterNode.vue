@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import { Handle, Position } from "@vue-flow/core";
+import NodeDeleteButton from "./NodeDeleteButton.vue";
 
 const props = defineProps({
   label: {
@@ -13,7 +14,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["update-config"]);
+const emit = defineEmits(["update-config", "delete-node"]);
 const isConfigOpen = ref(false);
 const condition = ref("");
 
@@ -36,6 +37,7 @@ function saveConfig() {
 <template>
   <div class="filter-node">
     <Handle type="target" :position="Position.Top" />
+    <NodeDeleteButton @delete="emit('delete-node')" />
     <div class="node-content" @click="openConfig"> {{ label }}</div>
     <Handle type="source" :position="Position.Bottom" />
     <div v-if="data?.description" class="node-description">
@@ -73,6 +75,7 @@ function saveConfig() {
 
 <style scoped>
 .filter-node {
+  position: relative;
   padding: 10px 15px;
   border-radius: 8px;
   background: #6366f1;
