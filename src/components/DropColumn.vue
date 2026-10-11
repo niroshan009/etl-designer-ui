@@ -18,17 +18,16 @@ const isConfigOpen = ref(false);
 const columns = ref("");
 
 function openConfig() {
-  const savedConfig = Array.isArray(props.data?.config) ? props.data.config : [];
+  const savedConfig = Array.isArray(props.data?.configurations) ? props.data.configurations : [];
   columns.value =
-    savedConfig.find((setting) => setting.key === "columns")?.value ??
-    props.data?.columns ??
-    "";
+    savedConfig.find((setting) => setting.config === "columns")?.value ??
+    props.data?.columns ?? "";
   isConfigOpen.value = true;
 }
 
 function saveConfig() {
   emit("update-config", {
-    config: [{ key: "columns", value: columns.value }],
+    configurations: [{ config: "columns", value: columns.value }],
   });
   isConfigOpen.value = false;
 }

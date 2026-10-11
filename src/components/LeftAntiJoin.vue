@@ -18,17 +18,16 @@ const isConfigOpen = ref(false);
 const joinColumn = ref("");
 
 function openConfig() {
-  const savedConfig = Array.isArray(props.data?.config) ? props.data.config : [];
+  const savedConfig = Array.isArray(props.data?.configurations) ? props.data.configurations : [];
   joinColumn.value =
-    savedConfig.find((setting) => setting.key === "joinColumn")?.value ??
-    props.data?.joinColumn ??
-    "";
+    savedConfig.find((setting) => setting.config === "joinColumn")?.value ??
+    props.data?.joinColumn ?? "";
   isConfigOpen.value = true;
 }
 
 function saveConfig() {
   emit("update-config", {
-    config: [{ key: "joinColumn", value: joinColumn.value }],
+    configurations: [{ config: "joinColumn", value: joinColumn.value }],
   });
   isConfigOpen.value = false;
 }

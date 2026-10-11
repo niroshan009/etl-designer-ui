@@ -17,37 +17,37 @@ const emit = defineEmits(["update-config"]);
 const isConfigOpen = ref(false);
 const config = ref([]);
 const ICEBERG_CONFIG_FIELDS = [
-  { key: "catalog", label: "Catalog", placeholder: "e.g. demo", default: "" },
-  { key: "namespace", label: "Namespace / database", placeholder: "e.g. analytics", default: "" },
-  { key: "table", label: "Table name", placeholder: "e.g. customer_events", default: "" },
+  { config: "catalog", label: "Catalog", placeholder: "e.g. demo", default: "" },
+  { config: "namespace", label: "Namespace / database", placeholder: "e.g. analytics", default: "" },
+  { config: "table", label: "Table name", placeholder: "e.g. customer_events", default: "" },
   {
-    key: "writeMode",
+    config: "writeMode",
     label: "Write mode",
     type: "select",
     options: ["append", "overwrite", "errorifexists", "ignore"],
     default: "append",
   },
-  { key: "partitionBy", label: "Partition columns", placeholder: "e.g. event_date, region", default: "" },
+  { config: "partitionBy", label: "Partition columns", placeholder: "e.g. event_date, region", default: "" },
 ];
 
 function openConfig() {
-  const savedConfig = Array.isArray(props.data?.config) ? props.data.config : [];
+  const savedConfig = Array.isArray(props.data?.configurations) ? props.data.configurations : [];
   config.value = ICEBERG_CONFIG_FIELDS.map((field) => {
-    const savedValue = savedConfig.find((setting) => setting.key === field.key)?.value;
+    const setting = savedConfig.find((item) => item.config === field.config);
     return {
-      key: field.key,
-      value: savedValue ?? props.data?.[field.key] ?? field.default,
+      config: field.config,
+      value: setting?.value ?? props.data?.[field.config] ?? field.default,
     };
   });
   isConfigOpen.value = true;
 }
 
-function getConfigValue(key) {
-  return config.value.find((setting) => setting.key === key)?.value;
+function getConfigValue(configName) {
+  return config.value.find((setting) => setting.config === configName)?.value;
 }
 
-function updateConfigValue(key, value) {
-  const setting = config.value.find((item) => item.key === key);
+function updateConfigValue(configName, value) {
+  const setting = config.value.find((item) => item.config === configName);
   if (setting) {
     setting.value = value;
   }
@@ -55,7 +55,7 @@ function updateConfigValue(key, value) {
 
 function saveConfig() {
   emit("update-config", {
-    config: config.value.map(({ key, value }) => ({ key, value })),
+    configurations: config.value.map(({ config, value }) => ({ config, value })),
   });
   isConfigOpen.value = false;
 }
@@ -84,15 +84,15 @@ function saveConfig() {
 
         <div
           v-for="field in ICEBERG_CONFIG_FIELDS"
-          :key="field.key"
+          :key="field.config"
           class="iceberg-config-field"
         >
-          <label :for="`iceberg-${field.key}`">{{ field.label }}</label>
+          <label :for="`iceberg-${field.config}`">{{ field.label }}</label>
           <select
             v-if="field.type === 'select'"
-            :id="`iceberg-${field.key}`"
-            :value="getConfigValue(field.key)"
-            @change="updateConfigValue(field.key, $event.target.value)"
+            :id="`iceberg-${field.config}`"
+            :value="getConfigValue(field.config)"
+            @change="updateConfigValue(field.config, $event.target.value)"
           >
             <option v-for="option in field.options" :key="option" :value="option">
               {{ option }}
@@ -100,11 +100,11 @@ function saveConfig() {
           </select>
           <input
             v-else
-            :id="`iceberg-${field.key}`"
+            :id="`iceberg-${field.config}`"
             type="text"
             :placeholder="field.placeholder"
-            :value="getConfigValue(field.key)"
-            @input="updateConfigValue(field.key, $event.target.value)"
+            :value="getConfigValue(field.config)"
+            @input="updateConfigValue(field.config, $event.target.value)"
           />
         </div>
 

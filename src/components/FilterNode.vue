@@ -18,17 +18,16 @@ const isConfigOpen = ref(false);
 const condition = ref("");
 
 function openConfig() {
-  const savedConfig = Array.isArray(props.data?.config) ? props.data.config : [];
+  const savedConfig = Array.isArray(props.data?.configurations) ? props.data.configurations : [];
   condition.value =
-    savedConfig.find((setting) => setting.key === "condition")?.value ??
-    props.data?.condition ??
-    "";
+    savedConfig.find((setting) => setting.config === "condition")?.value ??
+    props.data?.condition ?? "";
   isConfigOpen.value = true;
 }
 
 function saveConfig() {
   emit("update-config", {
-    config: [{ key: "condition", value: condition.value }],
+    configurations: [{ config: "condition", value: condition.value }],
   });
   isConfigOpen.value = false;
 }

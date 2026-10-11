@@ -247,7 +247,7 @@ const sendData = async () => {
   const url = "http://localhost:8081/etl/create";
   const payload = {
     edges: edges.value,
-    nodes: nodes.value,
+    nodes: nodes.value.map(({ data, description, ...node }) => node),
     configuration: configuration.value,
     scriptName: scriptName.value
   };

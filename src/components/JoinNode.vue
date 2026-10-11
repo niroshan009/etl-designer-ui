@@ -21,8 +21,13 @@ const emit = defineEmits(["update-config"]);
 const isConfigOpen = ref(false);
 const conditions = ref([]);
 
+function newConditionId() {
+  return `condition-${crypto.randomUUID()}`;
+}
+
 function newCondition(logicalOperator = null) {
   return {
+    id: newConditionId(),
     leftDataset: props.datasets[0]?.id ?? "",
     leftColumn: "",
     rightDataset: props.datasets[1]?.id ?? "",
@@ -31,21 +36,69 @@ function newCondition(logicalOperator = null) {
   };
 }
 
-function openConfig() {
-  const savedConfig = Array.isArray(props.data?.config) ? props.data.config : [];
-  const savedConditions =
-    savedConfig.find((setting) => setting.key === "conditions")?.value ??
-    props.data?.conditions;
+function parseDatasetColumn(reference) {
+  const dataset = [...props.datasets]
+    .sort((left, right) => right.id.length - left.id.length)
+    .find(({ id }) => reference.startsWith(`${id}.`));
 
-  conditions.value = Array.isArray(savedConditions) && savedConditions.length
-    ? savedConditions.map((condition, index) => ({
-        leftDataset: condition.leftDataset ?? "",
-        leftColumn: condition.leftColumn ?? condition.columns?.[0] ?? "",
-        rightDataset: condition.rightDataset ?? "",
-        rightColumn: condition.rightColumn ?? condition.columns?.[1] ?? "",
-        logicalOperator: index === 0 ? null : condition.logicalOperator ?? "AND",
-      }))
-    : [newCondition()];
+  if (dataset) {
+    return {
+      dataset: dataset.id,
+      column: reference.slice(dataset.id.length + 1),
+    };
+  }
+
+  const separator = reference.indexOf(".");
+  return separator < 0
+    ? { dataset: "", column: reference }
+    : { dataset: reference.slice(0, separator), column: reference.slice(separator + 1) };
+}
+
+function parseConditionExpression(expression, firstConditionId = newConditionId()) {
+  const parts = expression.split(/\s+(AND|OR)\s+/);
+
+  return parts.filter((_, index) => index % 2 === 0).map((part, index) => {
+    const [leftReference = "", rightReference = ""] = part.split(" = ");
+    const left = parseDatasetColumn(leftReference);
+    const right = parseDatasetColumn(rightReference);
+
+    return {
+      id: index === 0 ? firstConditionId : newConditionId(),
+      leftDataset: left.dataset,
+      leftColumn: left.column,
+      rightDataset: right.dataset,
+      rightColumn: right.column,
+      logicalOperator: index === 0 ? null : parts[index * 2 - 1] ?? "AND",
+    };
+  });
+}
+
+function openConfig() {
+  const savedConfig = Array.isArray(props.data?.configurations) ? props.data.configurations : [];
+  const conditionEntries = savedConfig.filter(
+    (setting) =>
+      setting.config?.startsWith("condition-") &&
+      !setting.config.endsWith(".operator") &&
+      typeof setting.value === "string",
+  );
+
+  if (conditionEntries.length) {
+    conditions.value = conditionEntries.map((entry, index) => {
+      const conditionId = entry.config;
+      const operatorSetting = savedConfig.find(
+        (setting) => setting.config === `${conditionId}.operator`,
+      );
+
+      return {
+        ...parseConditionExpression(entry.value, conditionId)[0],
+        logicalOperator: index === 0
+          ? null
+          : operatorSetting?.value ?? "AND",
+      };
+    });
+  } else {
+    conditions.value = [newCondition()];
+  }
   isConfigOpen.value = true;
 }
 
@@ -60,17 +113,20 @@ function removeCondition(index) {
 }
 
 function saveConfig() {
+  const configurations = conditions.value.flatMap(
+    ({ id, leftDataset, leftColumn, rightDataset, rightColumn, logicalOperator }, index) => [
+      {
+        config: id,
+        value: `${leftDataset}.${leftColumn} = ${rightDataset}.${rightColumn}`,
+      },
+      ...(index > 0
+        ? [{ config: `${id}.operator`, value: logicalOperator }]
+        : []),
+    ],
+  );
+
   emit("update-config", {
-    config: [{
-      key: "conditions",
-      value: conditions.value.map(({ leftDataset, leftColumn, rightDataset, rightColumn, logicalOperator }) => ({
-        leftDataset,
-        leftColumn,
-        rightDataset,
-        rightColumn,
-        logicalOperator,
-      })),
-    }],
+    configurations,
   });
   isConfigOpen.value = false;
 }

@@ -17,30 +17,30 @@ const emit = defineEmits(["update-config"]);
 const isConfigOpen = ref(false);
 const config = ref([]);
 const CSV_CONFIG_FIELDS = [
-  { key: "filePath", label: "CSV file path", placeholder: "s3://bucket/path/file.csv", default: "" },
-  { key: "delimiter", label: "Delimiter", placeholder: ",", default: "," },
-  { key: "hasHeader", label: "First row contains headers", type: "checkbox", default: true },
-  { key: "inferSchema", label: "Infer schema", type: "checkbox", default: true },
+  { config: "filePath", label: "CSV file path", placeholder: "s3://bucket/path/file.csv", default: "" },
+  { config: "delimiter", label: "Delimiter", placeholder: ",", default: "," },
+  { config: "hasHeader", label: "First row contains headers", type: "checkbox", default: true },
+  { config: "inferSchema", label: "Infer schema", type: "checkbox", default: true },
 ];
 
 function openConfig() {
-  const savedConfig = Array.isArray(props.data?.config) ? props.data.config : [];
+  const savedConfig = Array.isArray(props.data?.configurations) ? props.data.configurations : [];
   config.value = CSV_CONFIG_FIELDS.map((field) => {
-    const savedValue = savedConfig.find((setting) => setting.key === field.key)?.value;
+    const setting = savedConfig.find((item) => item.config === field.config);
     return {
-      key: field.key,
-      value: savedValue ?? props.data?.[field.key] ?? field.default,
+      config: field.config,
+      value: setting?.value ?? props.data?.[field.config] ?? field.default,
     };
   });
   isConfigOpen.value = true;
 }
 
-function getConfigValue(key) {
-  return config.value.find((setting) => setting.key === key)?.value;
+function getConfigValue(configName) {
+  return config.value.find((setting) => setting.config === configName)?.value;
 }
 
-function updateConfigValue(key, value) {
-  const setting = config.value.find((item) => item.key === key);
+function updateConfigValue(configName, value) {
+  const setting = config.value.find((item) => item.config === configName);
   if (setting) {
     setting.value = value;
   }
@@ -48,7 +48,7 @@ function updateConfigValue(key, value) {
 
 function saveConfig() {
   emit("update-config", {
-    config: config.value.map(({ key, value }) => ({ key, value })),
+    configurations: config.value.map(({ config, value }) => ({ config, value })),
   });
   isConfigOpen.value = false;
 }
@@ -72,24 +72,24 @@ function saveConfig() {
 
         <div
           v-for="field in CSV_CONFIG_FIELDS"
-          :key="field.key"
+          :key="field.config"
           class="csv-config-field"
         >
-          <label :for="`csv-${field.key}`">{{ field.label }}</label>
+          <label :for="`csv-${field.config}`">{{ field.label }}</label>
           <input
             v-if="field.type === 'checkbox'"
-            :id="`csv-${field.key}`"
+            :id="`csv-${field.config}`"
             type="checkbox"
-            :checked="getConfigValue(field.key) === true || getConfigValue(field.key) === 'true'"
-            @change="updateConfigValue(field.key, $event.target.checked)"
+            :checked="getConfigValue(field.config) === true || getConfigValue(field.config) === 'true'"
+            @change="updateConfigValue(field.config, $event.target.checked)"
           />
           <input
             v-else
-            :id="`csv-${field.key}`"
+            :id="`csv-${field.config}`"
             type="text"
             :placeholder="field.placeholder"
-            :value="getConfigValue(field.key)"
-            @input="updateConfigValue(field.key, $event.target.value)"
+            :value="getConfigValue(field.config)"
+            @input="updateConfigValue(field.config, $event.target.value)"
           />
         </div>
 
