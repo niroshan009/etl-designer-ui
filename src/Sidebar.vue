@@ -28,7 +28,7 @@ const { onDragStart } = useDragAndDrop()
       <section class="node-group" aria-labelledby="wide-nodes-heading">
         <h3 id="wide-nodes-heading">Wide transformations</h3>
         <div class="nodes">
-          <div class="vue-flow__node-output spark-node-output spark-wide" :draggable="true" @dragstart="onDragStart($event, 'join')">Join</div>
+          <div class="vue-flow__node-output spark-node-output spark-wide" :draggable="true" @dragstart="onDragStart($event, 'left-join')">Left Join</div>
           <div class="vue-flow__node-output spark-node-output spark-wide" :draggable="true" @dragstart="onDragStart($event, 'left-anti-join')">Left Anti Join</div>
         </div>
       </section>

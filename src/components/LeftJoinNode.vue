@@ -9,7 +9,7 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps({
   label: {
     type: String,
-    default: "Join",
+    default: "Left Join",
   },
   datasets: {
     type: Array,
@@ -119,13 +119,13 @@ function removeCondition(index) {
 function saveConfig() {
   const configurations = conditions.value.flatMap(
     ({ id, leftDataset, leftColumn, rightDataset, rightColumn, logicalOperator }, index) => [
+      ...(index > 0
+        ? [{ config: `${id}.operator`, value: logicalOperator }]
+        : []),
       {
         config: id,
         value: `${leftDataset}.${leftColumn} = ${rightDataset}.${rightColumn}`,
       },
-      ...(index > 0
-        ? [{ config: `${id}.operator`, value: logicalOperator }]
-        : []),
     ],
   );
 
@@ -137,7 +137,7 @@ function saveConfig() {
 </script>
 
 <template>
-  <div v-bind="$attrs" class="join-node spark-wide">
+  <div v-bind="$attrs" class="left-join-node spark-wide">
     <Handle type="target" :position="Position.Top" />
     <NodeDeleteButton @delete="emit('delete-node')" />
     <div class="node-content" @click="openConfig">{{ label }}</div>
@@ -238,7 +238,7 @@ function saveConfig() {
 </template>
 
 <style scoped>
-.join-node {
+.left-join-node {
   position: relative;
   padding: 10px 15px;
   border-radius: 8px;

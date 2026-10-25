@@ -7,7 +7,7 @@ import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
 import IcebergWriterNode from "./components/IcebergWriterNode.vue";
 import DatabaseWriterNode from "./components/DatabaseWriterNode.vue";
-import JoinNode from "./components/JoinNode.vue";
+import JoinNode from "./components/LeftJoinNode.vue";
 import LeftAntiJoin from "./components/LeftAntiJoin.vue";
 import DropColumn from "./components/DropColumn.vue";
 import LitColumn from "./components/LitColumn.vue";
@@ -71,7 +71,7 @@ const plugins = [
   }),
 ];
 
-const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter", "databasewriter", "mysqlwriter", "left-anti-join", "drop-column"];
+const DESCRIPTIVE_NODE_TYPES = ["left-join", "filter", "csvreader", "icebergwriter", "databasewriter", "left-anti-join", "drop-column"];
 const KEY_VALUE_NODE_TYPE = ["lit-column"]
 
 onNodesChange((changes) => {
@@ -162,7 +162,7 @@ function closeEdgeModal() {
   isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
-  if (["csvreader", "filter", "join", "icebergwriter", "databasewriter", "mysqlwriter", "left-anti-join", "drop-column", "lit-column"].includes(node.type)) return;
+  if (["csvreader", "filter", "left-join", "icebergwriter", "databasewriter", "left-anti-join", "drop-column", "lit-column"].includes(node.type)) return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
     console.log(`Node type "${node.type}" skipped description edit.`);
     return;
@@ -221,6 +221,29 @@ function saveNodeData() {
   closeModal();
 }
 
+function orderJoinConfigurations(configurations) {
+  const conditions = configurations.filter(
+    ({ config }) => config?.startsWith("condition-") && !config.endsWith(".operator"),
+  );
+  const operators = new Map(
+    configurations
+      .filter(({ config }) => config?.endsWith(".operator"))
+      .map((entry) => [entry.config.slice(0, -".operator".length), entry]),
+  );
+  const ordered = conditions.flatMap((condition, index) => [
+    ...(index > 0 && operators.has(condition.config)
+      ? [operators.get(condition.config)]
+      : []),
+    condition,
+  ]);
+  const orderedConfigs = new Set(ordered.map(({ config }) => config));
+
+  return [
+    ...ordered,
+    ...configurations.filter(({ config }) => !orderedConfigs.has(config)),
+  ];
+}
+
 function closeModal() {
   isModalOpen.value = false;
   selectedNode.value = null;
@@ -250,10 +273,15 @@ function deleteNode(nodeId = selectedNode.value?.id) {
 }
 
 const sendData = async () => {
-  const url = "http://localhost:8081/etl/create";
+  const url = `${import.meta.env.VITE_ETL_BACKEND}/etl/create`;
   const payload = {
     edges: edges.value,
-    nodes: nodes.value.map(({ data, description, ...node }) => node),
+    nodes: nodes.value.map(({ data, description, ...node }) => ({
+      ...node,
+      ...(node.type === "left-join" && Array.isArray(node.configurations)
+        ? { configurations: orderJoinConfigurations(node.configurations) }
+        : {}),
+    })),
     configuration: configuration.value,
     scriptName: scriptName.value
   };
@@ -272,14 +300,82 @@ const sendData = async () => {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    const data = await response.text();
-    markdownText.value = data;
     isOpen.value = true;
+
+    const renderScript = (raw) => {
+      const normalizedScript = normalizeGeneratedScript(raw);
+      markdownText.value = normalizedScript.includes("```")
+        ? normalizedScript
+        : `\n\n\`\`\`python\n${normalizedScript}\n\`\`\`\n`;
+    };
+
+    if (response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let rawResponse = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        rawResponse += decoder.decode(value, { stream: !done });
+        renderScript(rawResponse);
+        if (done) break;
+      }
+    } else {
+      renderScript(await response.text());
+    }
   } catch (error) {
     errorMessage.value = error.message; // Handle errors
   } finally {
     isLoading.value = false;
   }
+};
+
+const normalizeGeneratedScript = (raw) => {
+  if (!raw) return "";
+
+  const isSse = /(^|\n)\s*(?:data|event|id|retry)\s*:/i.test(raw);
+  const source = isSse
+    ? raw.replace(/\r/g, "").split("\n\n").map((event) => {
+        const dataLines = event.split("\n").flatMap((line) => {
+          const indentation = line.match(/^\s*/)[0];
+          let content = line.slice(indentation.length);
+          if (/^(?:event|id|retry)\s*:/i.test(content) || /^:/.test(content)) return [];
+
+          if (!/^data\s*[:=]/i.test(content)) return [];
+          while (/^data\s*[:=]/i.test(content)) {
+            content = content.replace(/^data\s*[:=] ?/i, "");
+          }
+          return [indentation + content];
+        });
+        return dataLines.length ? dataLines.join("\n") : "";
+      }).join("")
+    : raw;
+
+  const unescaped = source
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t")
+    .replace(/\\r/g, "")
+    .replace(/\\\//g, "/")
+    .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'")
+    .replace(/\\u003c/g, "<")
+    .replace(/\\u003e/g, ">")
+    .replace(/\\u0026/g, "&");
+
+  const joined = unescaped.replace(/\r/g, "").replace(/^\n+|\n+$/g, "");
+  if (!joined) return "";
+
+  const fencedMatch = joined.match(/```(?:\s*python)?\s*([\s\S]*?)\s*```/i);
+  if (fencedMatch) {
+    return fencedMatch[1].replace(/^\n+|\n+$/g, "");
+  }
+
+  return joined
+    .replace(/^python\s*/i, "")
+    .replace(/^```\s*python\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/g, "")
+    .replace(/\n{3,}/g, "\n\n");
 };
 
 const closeMDModal = () => {
@@ -296,7 +392,7 @@ const addRow = () => {
 };
 
 const submitJob = async () => {
-  const url = "http://localhost:8081/etl/submitjob";
+  const url = `${import.meta.env.VITE_ETL_BACKEND}/etl/submitjob`;
   const payload = {
     scriptName: scriptName.value
   };
@@ -379,7 +475,7 @@ const submitJob = async () => {
               @delete-node="deleteNode(nodeProps.id)"
             />
           </template>
-          <template #node-join="nodeProps">
+          <template #node-left-join="nodeProps">
             <JoinNode
               v-bind="nodeProps"
               :datasets="getJoinDatasets(nodeProps.id)"
@@ -678,6 +774,15 @@ const submitJob = async () => {
 .markdown-body {
   line-height: 1.6;
   text-align: left;
+}
+
+#app .markdown-body {
+  text-transform: none;
+}
+
+.markdown-body :deep(pre) {
+  overflow-x: auto;
+  white-space: pre;
 }
 
 .fetch-btn {
