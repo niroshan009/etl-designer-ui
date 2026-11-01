@@ -1,42 +1,36 @@
 # etl-designer-ui
 
-This template should help get you started developing with Vue 3 in Vite.
+etl-designer-ui project let you design etl workflows and generate pySpark code. This project intend to streamline pySpark code generation laveraging AI. This project depends on [etl-desginer](https://github.com/niroshan009/etl-designer).
 
-## Recommended IDE Setup
+Below is the component diagram.
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+![Project Screenshot](./ETL_designer_compoenent_diagram.jpg)
 
-## Recommended Browser Setup
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+# Running locally
+To run locally developers need below components
+1. etl-backend service running
+    - run `docker compose up` in etl-backend project as well
+        - this `docker-compose.yaml` will start the rustfs and create necessery buckets
+2. Local Kubernetes environment (Orb Stack k8s or Minikube)
+    - To run spark jobs
+    - To deploy etl-desginer-ui + etl-designer
+3. Ollama installed with atlease one model running
 
-## Type Support for `.vue` Imports in TS
+# Development setup
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Compile and Hot-Reload for Development
 
 ```sh
 npm install
 ```
-
-### Compile and Hot-Reload for Development
-
+Then run below command.
 ```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
-
+## Running the application
+Directly run etl-designer-ui as container
 ```sh
-npm run build
+docker run -it -p 5173:80 --rm --name etl-designer-ui local/etl-designer-ui:latest
 ```
