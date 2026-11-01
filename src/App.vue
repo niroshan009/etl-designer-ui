@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from "vue";
 import { VueFlow, MarkerType, useVueFlow, Panel } from "@vue-flow/core";
-import { Plus, Save, Send, Trash2, WandSparkles, X } from "@lucide/vue";
 import DropzoneBackground from "./DropzoneBackground.vue";
 import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
@@ -14,10 +13,6 @@ import LitColumn from "./components/LitColumn.vue";
 
 import Sidebar from "./Sidebar.vue";
 import useDragAndDrop from "./useDnD";
-import { log } from "console";
-import { debug } from "console";
-import { parseMarkdown } from "comark";
-import { Markdown } from "@comark/vue";
 
 import githubLight from "@shikijs/themes/github-light";
 import githubDark from "@shikijs/themes/github-dark";
@@ -33,21 +28,7 @@ const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
 const nodes = ref([]);
 const edges = ref([]);
-const configuration = ref([{config:"spark.sql.extensions", value: "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"},
-{config:"spark.sql.catalog.demo", value: "org.apache.iceberg.spark.SparkCatalog"},
-{config:"spark.sql.catalog.demo.type", value: "rest"},
-{config:"spark.sql.catalog.demo.uri", value: "http://iceberg-rest.orb.local:8181"},
-{config:"spark.sql.catalog.demo.s3.endpoint", value: "http://rustfs.orb.local:9000"},
-{config:"spark.sql.catalog.demo.s3.path-style-access", value: "true"},
-{config:"spark.sql.catalog.demo.s3.access-key-id", value: "rustfsadmin"},
-{config:"spark.sql.catalog.demo.s3.secret-access-key", value: "rustfsadmin"},
-{config:"spark.sql.catalog.demo.warehouse", value: "s3://warehouse/"},
-{config:"spark.hadoop.fs.s3.impl", value: "org.apache.hadoop.fs.s3a.S3AFileSystem"},
-{config:"spark.hadoop.fs.s3a.endpoint", value: "http://rustfs.orb.local:9000"},
-{config:"spark.hadoop.fs.s3a.access.key", value: "rustfsadmin"},
-{config:"spark.hadoop.fs.s3a.secret.key", value: "rustfsadmin"},
-{config:"spark.hadoop.fs.s3a.path.style.access", value: "true"},
-{config:"spark.hadoop.fs.s3a.aws.credentials.provider", value: "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"}]);
+const configuration = ref([{config:"", value: ""}]);
 
 const isModalOpen = ref(false);
 const isEdgeModalOpen = ref(false);
@@ -112,8 +93,6 @@ onConnect((connection) => {
     isRefData: false
   };
   edges.value.push(newEdge);
-
-  console.log("Edge successfully added!");
 });
 
 function handleEdgeClick({ edge }) {
@@ -128,7 +107,6 @@ function saveEdgeData() {
   if (!selectedEdge.value) return;
   selectedEdge.value.label = edgeLabelInput.value;
 
-  console.log("selected " + selectedEdge.value.source);
   const edg = edges.value.find(
     (i) =>
       i.source == selectedEdge.value.source &&
@@ -137,12 +115,7 @@ function saveEdgeData() {
   edg.label = edgeLabelInput.value;
   edg.source = selectedEdge.value.source;
   edg.isRefData = isPopupRefData.value;
-
-  console.log('---------');
-  console.log(edg);
  
-
-
   const existingEdge = findEdge(edg.id);
   existingEdge.animated =  edg.isRefData;
   existingEdge.data = {
@@ -150,10 +123,7 @@ function saveEdgeData() {
     isRefData: edg.isRefData
   }
 
-  console.log("existing edge")
-  console.log(existingEdge)
   closeEdgeModal();
-  
 
 }
 function closeEdgeModal() {
@@ -164,7 +134,6 @@ function closeEdgeModal() {
 function handleNodeClick({ node }) {
   if (["csvreader", "filter", "left-join", "icebergwriter", "databasewriter", "left-anti-join", "drop-column", "lit-column"].includes(node.type)) return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
-    console.log(`Node type "${node.type}" skipped description edit.`);
     return;
   }
 
@@ -211,13 +180,6 @@ function saveNodeData() {
   selectedNode.value.data.description = nodeDescriptionInput.value;
   const nod = nodes.value.find((i) => i.id == selectedNode.value.id);
   nod.description = nodeDescriptionInput.value;
-  console.log("edited the node :" + nod.id);
-
-  console.log(
-    "Saved data for node:",
-    selectedNode.value.id,
-    selectedNode.value.data
-  );
   closeModal();
 }
 
@@ -273,7 +235,7 @@ function deleteNode(nodeId = selectedNode.value?.id) {
 }
 
 const sendData = async () => {
-  const url = `${import.meta.env.VITE_ETL_BACKEND}/etl/create`;
+  const url = `${import.meta.env.VITE_ETL_BACKEND}/create`;
   const payload = {
     edges: edges.value,
     nodes: nodes.value.map(({ data, description, ...node }) => ({
@@ -383,7 +345,6 @@ const closeMDModal = () => {
   markdownText.value = ""; // Clear content on close to save memory
 };
 const saveRow = (item, index) => {
-  console.log(`Saving row at index ${index} with new data:`, item);
   // item.name and item.role already contain the updated input text here
 };
 
@@ -392,7 +353,7 @@ const addRow = () => {
 };
 
 const submitJob = async () => {
-  const url = `${import.meta.env.VITE_ETL_BACKEND}/etl/submitjob`;
+  const url = `${import.meta.env.VITE_ETL_BACKEND}/submitjob`;
   const payload = {
     scriptName: scriptName.value
   };
