@@ -20,6 +20,7 @@ import shiki from "comark/plugins/shiki";
 
 
 import { VueMarkdownIt } from 'vue-markdown-shiki'
+import { normalizeGeneratedScript } from "./normalizeGeneratedScript";
 
 
 const { onConnect, addEdges, onNodesChange, removeEdges, removeNodes, updateEdge, findEdge, findNode } = useVueFlow();
@@ -265,10 +266,7 @@ const sendData = async () => {
     isOpen.value = true;
 
     const renderScript = (raw) => {
-      const normalizedScript = normalizeGeneratedScript(raw);
-      markdownText.value = normalizedScript.includes("```")
-        ? normalizedScript
-        : `\n\n\`\`\`python\n${normalizedScript}\n\`\`\`\n`;
+      markdownText.value = normalizeGeneratedScript(raw);
     };
 
     if (response.body) {
@@ -290,54 +288,6 @@ const sendData = async () => {
   } finally {
     isLoading.value = false;
   }
-};
-
-const normalizeGeneratedScript = (raw) => {
-  if (!raw) return "";
-
-  const isSse = /(^|\n)\s*(?:data|event|id|retry)\s*:/i.test(raw);
-  const source = isSse
-    ? raw.replace(/\r/g, "").split("\n\n").map((event) => {
-        const dataLines = event.split("\n").flatMap((line) => {
-          const indentation = line.match(/^\s*/)[0];
-          let content = line.slice(indentation.length);
-          if (/^(?:event|id|retry)\s*:/i.test(content) || /^:/.test(content)) return [];
-
-          if (!/^data\s*[:=]/i.test(content)) return [];
-          while (/^data\s*[:=]/i.test(content)) {
-            content = content.replace(/^data\s*[:=] ?/i, "");
-          }
-          return [indentation + content];
-        });
-        return dataLines.length ? dataLines.join("\n") : "";
-      }).join("")
-    : raw;
-
-  const unescaped = source
-    .replace(/\\n/g, "\n")
-    .replace(/\\t/g, "\t")
-    .replace(/\\r/g, "")
-    .replace(/\\\//g, "/")
-    .replace(/\\"/g, '"')
-    .replace(/\\'/g, "'")
-    .replace(/\\u003c/g, "<")
-    .replace(/\\u003e/g, ">")
-    .replace(/\\u0026/g, "&");
-
-  const joined = unescaped.replace(/\r/g, "").replace(/^\n+|\n+$/g, "");
-  if (!joined) return "";
-
-  const fencedMatch = joined.match(/```(?:\s*python)?\s*([\s\S]*?)\s*```/i);
-  if (fencedMatch) {
-    return fencedMatch[1].replace(/^\n+|\n+$/g, "");
-  }
-
-  return joined
-    .replace(/^python\s*/i, "")
-    .replace(/^```\s*python\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/g, "")
-    .replace(/\n{3,}/g, "\n\n");
 };
 
 const closeMDModal = () => {
