@@ -5,21 +5,25 @@ import DropzoneBackground from "./DropzoneBackground.vue";
 import CsvReaderNode from "./components/CsvReaderNode.vue";
 import FilterNode from "./components/FilterNode.vue";
 import IcebergWriterNode from "./components/IcebergWriterNode.vue";
-import JoinNode from "./components/JoinNode.vue";
+import DatabaseWriterNode from "./components/DatabaseWriterNode.vue";
+import JoinNode from "./components/LeftJoinNode.vue";
 import LeftAntiJoin from "./components/LeftAntiJoin.vue";
+import DropColumn from "./components/DropColumn.vue";
+import LitColumn from "./components/LitColumn.vue";
 
 import Sidebar from "./Sidebar.vue";
 import useDragAndDrop from "./useDnD";
-import { log } from "console";
-import { debug } from "console";
-import { parseMarkdown } from "comark";
-import { Markdown } from "@comark/vue";
 
 import githubLight from "@shikijs/themes/github-light";
 import githubDark from "@shikijs/themes/github-dark";
 import shiki from "comark/plugins/shiki";
 
-const { onConnect, addEdges, onNodesChange, removeEdges, removeNodes } = useVueFlow();
+
+import { VueMarkdownIt } from 'vue-markdown-shiki'
+import { normalizeGeneratedScript } from "./normalizeGeneratedScript";
+
+
+const { onConnect, addEdges, onNodesChange, removeEdges, removeNodes, updateEdge, findEdge, findNode } = useVueFlow();
 
 const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
@@ -29,10 +33,12 @@ const configuration = ref([]);
 
 const isModalOpen = ref(false);
 const isEdgeModalOpen = ref(false);
+const isPopupRefData = ref(false);
 const selectedNode = ref(null);
 const selectedEdge = ref(null);
 const edgeLabelInput = ref("");
 const nodeDescriptionInput = ref("");
+const scriptName = ref("");
 
 const isOpen = ref(false);
 const isLoading = ref(false);
@@ -47,36 +53,35 @@ const plugins = [
   }),
 ];
 
-const DESCRIPTIVE_NODE_TYPES = ["join", "filter", "csvreader", "icebergwriter", "left-anti-join"];
+const DESCRIPTIVE_NODE_TYPES = ["left-join", "filter", "csvreader", "icebergwriter", "databasewriter", "left-anti-join", "drop-column"];
+const KEY_VALUE_NODE_TYPE = ["lit-column"]
 
 onNodesChange((changes) => {
   changes.forEach((change) => {
     if (change.type === "add") {
-      console.log("Node added to pane:", change.item);
-      console.log(change.item.id);
       const payload = {
         id: change.item.id,
         type: change.item.type,
-        description: "",
+        ...(change.item.type !== "csvreader" ? { description: "" } : {}),
       };
       nodes.value.push(payload);
     } else {
-      console.log("event type :" + change.type);
     }
   });
 });
 
 onConnect((connection) => {
-  console.log("Edge connection attempted:", connection);
 
   const customEdge = {
     ...connection,
     id: connection.source + "_" + connection.target,
-    type: "smoothstep",
+    type: "step",
     label: connection.source + "_" + connection.target,
-    animated: true,
+    animated: false,
     markerEnd: MarkerType.ArrowClosed,
-    data: { createdAt: Date.now() },
+    data: { createdAt: Date.now(),
+      isRefData: false
+     },
   };
 
   addEdges(customEdge);
@@ -86,24 +91,23 @@ onConnect((connection) => {
     source: connection.source,
     target: connection.target,
     label: connection.source + "_" + connection.target,
+    isRefData: false
   };
   edges.value.push(newEdge);
-  console.log(customEdge);
-
-  console.log("Edge successfully added!");
 });
 
 function handleEdgeClick({ edge }) {
   selectedEdge.value = edge;
   edgeLabelInput.value = edge.label || "";
+  isPopupRefData.value = edge.data.isRefData;
+  
   isEdgeModalOpen.value = true;
-  console.log(selectedEdge);
+ 
 }
 function saveEdgeData() {
   if (!selectedEdge.value) return;
   selectedEdge.value.label = edgeLabelInput.value;
 
-  console.log("selected " + selectedEdge.value.source);
   const edg = edges.value.find(
     (i) =>
       i.source == selectedEdge.value.source &&
@@ -111,24 +115,61 @@ function saveEdgeData() {
   );
   edg.label = edgeLabelInput.value;
   edg.source = selectedEdge.value.source;
-
-  console.log("=====");
-  console.log(edg);
+  edg.isRefData = isPopupRefData.value;
+ 
+  const existingEdge = findEdge(edg.id);
+  existingEdge.animated =  edg.isRefData;
+  existingEdge.data = {
+    ...existingEdge.data,
+    isRefData: edg.isRefData
+  }
 
   closeEdgeModal();
+
 }
 function closeEdgeModal() {
   isEdgeModalOpen.value = false;
   selectedEdge.value = null;
+  isPopupRefData.value = false;
 }
 function handleNodeClick({ node }) {
+  if (["csvreader", "filter", "left-join", "icebergwriter", "databasewriter", "left-anti-join", "drop-column", "lit-column"].includes(node.type)) return;
   if (!DESCRIPTIVE_NODE_TYPES.includes(node.type)) {
-    console.log(`Node type "${node.type}" skipped description edit.`);
     return;
   }
+
   selectedNode.value = node;
   nodeDescriptionInput.value = node.data?.description || "";
   isModalOpen.value = true;
+}
+
+function saveNodeConfig(nodeId, config) {
+  const flowNode = findNode(nodeId);
+  if (flowNode) {
+    Object.assign(flowNode.data, config);
+  }
+
+  const nodeRecord = nodes.value.find((node) => node.id === nodeId);
+  if (nodeRecord) {
+    Object.assign(nodeRecord, config, {
+      data: { ...nodeRecord.data, ...config },
+    });
+  }
+}
+
+function getJoinDatasets(nodeId) {
+  const inputIds = new Set(
+    edges.value
+      .filter((edge) => edge.target === nodeId && edge.source !== nodeId)
+      .map((edge) => edge.source),
+  );
+
+  return nodes.value
+    .filter((node) => inputIds.has(node.id))
+    .map((node) => ({
+      id: node.id,
+      label: findNode(node.id)?.data?.label ?? node.id,
+    }));
 }
 
 function saveNodeData() {
@@ -140,14 +181,30 @@ function saveNodeData() {
   selectedNode.value.data.description = nodeDescriptionInput.value;
   const nod = nodes.value.find((i) => i.id == selectedNode.value.id);
   nod.description = nodeDescriptionInput.value;
-  console.log("edited the node :" + nod.id);
-
-  console.log(
-    "Saved data for node:",
-    selectedNode.value.id,
-    selectedNode.value.data
-  );
   closeModal();
+}
+
+function orderJoinConfigurations(configurations) {
+  const conditions = configurations.filter(
+    ({ config }) => config?.startsWith("condition-") && !config.endsWith(".operator"),
+  );
+  const operators = new Map(
+    configurations
+      .filter(({ config }) => config?.endsWith(".operator"))
+      .map((entry) => [entry.config.slice(0, -".operator".length), entry]),
+  );
+  const ordered = conditions.flatMap((condition, index) => [
+    ...(index > 0 && operators.has(condition.config)
+      ? [operators.get(condition.config)]
+      : []),
+    condition,
+  ]);
+  const orderedConfigs = new Set(ordered.map(({ config }) => config));
+
+  return [
+    ...ordered,
+    ...configurations.filter(({ config }) => !orderedConfigs.has(config)),
+  ];
 }
 
 function closeModal() {
@@ -163,20 +220,33 @@ function deleteEdge() {
   closeEdgeModal();
 }
 
-function deleteNode() {
-  if (!selectedNode.value) return;
-  const nodeToDelete = selectedNode.value;
-  edges.value = edges.value.filter((e) =>  e.source != nodeToDelete.id && e.target != nodeToDelete.id )
+function deleteNode(nodeId = selectedNode.value?.id) {
+  if (!nodeId) return;
+  const nodeToDelete = findNode(nodeId);
+  if (!nodeToDelete) return;
+  if (!window.confirm("Delete this node and its connected edges?")) return;
+
+  edges.value = edges.value.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
+  nodes.value = nodes.value.filter((node) => node.id !== nodeId);
   removeNodes(nodeToDelete, true);
-  closeModal();
+
+  if (selectedNode.value?.id === nodeId) {
+    closeModal();
+  }
 }
 
 const sendData = async () => {
-  const url = "http://localhost:8080/etl/create";
+  const url = `${import.meta.env.VITE_ETL_BACKEND}/create`;
   const payload = {
     edges: edges.value,
-    nodes: nodes.value,
+    nodes: nodes.value.map(({ data, description, ...node }) => ({
+      ...node,
+      ...(node.type === "left-join" && Array.isArray(node.configurations)
+        ? { configurations: orderJoinConfigurations(node.configurations) }
+        : {}),
+    })),
     configuration: configuration.value,
+    scriptName: scriptName.value
   };
 
   try {
@@ -193,11 +263,26 @@ const sendData = async () => {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    const data = await response.text();
-    markdownText.value = await parseMarkdown(data, {
-      plugins: [shiki()],
-    });
     isOpen.value = true;
+
+    const renderScript = (raw) => {
+      markdownText.value = normalizeGeneratedScript(raw);
+    };
+
+    if (response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let rawResponse = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        rawResponse += decoder.decode(value, { stream: !done });
+        renderScript(rawResponse);
+        if (done) break;
+      }
+    } else {
+      renderScript(await response.text());
+    }
   } catch (error) {
     errorMessage.value = error.message; // Handle errors
   } finally {
@@ -210,13 +295,41 @@ const closeMDModal = () => {
   markdownText.value = ""; // Clear content on close to save memory
 };
 const saveRow = (item, index) => {
-  console.log(`Saving row at index ${index} with new data:`, item);
   // item.name and item.role already contain the updated input text here
 };
 
 const addRow = () => {
   configuration.value.push({ config: "", value: "" });
 };
+
+const submitJob = async () => {
+  const url = `${import.meta.env.VITE_ETL_BACKEND}/submitjob`;
+  const payload = {
+    scriptName: scriptName.value
+  };
+
+  try {
+    isLoading.value = true;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    await response.text();
+
+  } catch (error) {
+    errorMessage.value = error.message; // Handle errors
+  } finally {
+    isLoading.value = false;
+  }
+}
 </script>
 
 
@@ -239,19 +352,68 @@ const addRow = () => {
         >
           <!-- Custom Node Templates -->
           <template #node-csvreader="nodeProps">
-            <CsvReaderNode v-bind="nodeProps" />
+            <CsvReaderNode
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
           </template>
           <template #node-filter="nodeProps">
-            <FilterNode v-bind="nodeProps" />
+            <FilterNode
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
           </template>
           <template #node-icebergwriter="nodeProps">
-            <IcebergWriterNode v-bind="nodeProps" />
+            <IcebergWriterNode
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
           </template>
-          <template #node-join="nodeProps">
-            <JoinNode v-bind="nodeProps" />
+          <template #node-databasewriter="nodeProps">
+            <DatabaseWriterNode
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
+          </template>
+          <template #node-mysqlwriter="nodeProps">
+            <DatabaseWriterNode
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
+          </template>
+          <template #node-left-join="nodeProps">
+            <JoinNode
+              v-bind="nodeProps"
+              :datasets="getJoinDatasets(nodeProps.id)"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
           </template>
           <template #node-left-anti-join="nodeProps">
-            <LeftAntiJoin v-bind="nodeProps" />
+            <LeftAntiJoin
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
+          </template>
+          <template #node-drop-column="nodeProps">
+            <DropColumn
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
+          </template>
+          <template #node-lit-column="nodeProps">
+            <LitColumn
+              v-bind="nodeProps"
+              @update-config="saveNodeConfig(nodeProps.id, $event)"
+              @delete-node="deleteNode(nodeProps.id)"
+            />
           </template>
 
           <!-- Dropzone Highlight -->
@@ -284,9 +446,15 @@ const addRow = () => {
             </div>
 
             <div class="modal-actions">
-              <button class="btn-save" @click="deleteNode">Delete Component</button>
-              <button class="btn-cancel" @click="closeModal">Cancel</button>
-              <button class="btn-save" @click="saveNodeData">Save</button>
+              <button class="btn-save action-button" @click="deleteNode">
+                <Trash2 aria-hidden="true" /> Delete component
+              </button>
+              <button class="btn-cancel action-button" @click="closeModal">
+                <X aria-hidden="true" /> Cancel
+              </button>
+              <button class="btn-save action-button" @click="saveNodeData">
+                <Save aria-hidden="true" /> Save description
+              </button>
             </div>
           </div>
         </div>
@@ -306,11 +474,22 @@ const addRow = () => {
                 type="text"
                 placeholder="e.g., Success Flow"
               />
+              <div>
+               <input type="checkbox" id="reference" v-model="isPopupRefData" />
+               <label for="reference">Is Reference Dataset</label>
+               </div>
             </div>
+           
             <div class="modal-actions">
-              <button class="btn-save" @click="deleteEdge">Delete Connector</button>
-              <button class="btn-cancel" @click="closeEdgeModal">Cancel</button>
-              <button class="btn-save" @click="saveEdgeData">Save</button>
+              <button class="btn-save action-button" @click="deleteEdge">
+                <Trash2 aria-hidden="true" /> Delete connector
+              </button>
+              <button class="btn-cancel action-button" @click="closeEdgeModal">
+                <X aria-hidden="true" /> Cancel
+              </button>
+              <button class="btn-save action-button" @click="saveEdgeData">
+                <Save aria-hidden="true" /> Save connector
+              </button>
             </div>
           </div>
         </div>
@@ -318,6 +497,11 @@ const addRow = () => {
 
       <!-- Configurations Table Panel -->
       <div class="config-table-container">
+        Script Name: <input
+                  v-model="scriptName"
+                  type="text"
+                  placeholder="Enter Script name"
+                />
         <table class="fit-table">
           <thead>
             <tr>
@@ -346,10 +530,14 @@ const addRow = () => {
             </tr>
           </tbody>
         </table>
-        <button class="btn-add" @click="addRow">Add Configuration</button>
+        <button class="btn-add action-button" @click="addRow">
+          <Plus aria-hidden="true" /> Add configuration
+        </button>
         <div>
           Generate the python script
-          <button class="btn-generate" @click="sendData">Generate</button>
+          <button class="btn-generate action-button" @click="sendData">
+            <WandSparkles aria-hidden="true" /> Generate script
+          </button>
         </div>
       </div>
     </div>
@@ -357,12 +545,15 @@ const addRow = () => {
     <!-- Markdown Modal Viewer -->
     <div v-if="isOpen" class="modal-overlay" @click.self="closeMDModal">
       <div class="modal-content">
-        <button class="close-btn" @click="closeMDModal">&times;</button>
+        <button class="close-btn" aria-label="Close generated script" title="Close" @click="closeMDModal">
+          <X aria-hidden="true" />
+        </button>
         <div class="markdown-body">
-          <Suspense>
-            <Markdown :plugins="plugins" :value="markdownText" />
-          </Suspense>
+              <VueMarkdownIt :content="markdownText" />
         </div>
+        <button class="action-button" @click="submitJob">
+          <Send aria-hidden="true" /> Submit job
+        </button>
       </div>
     </div>
   </div>
@@ -472,7 +663,7 @@ const addRow = () => {
   padding: 30px;
   border-radius: 8px;
   width: 90%;
-  max-width: 600px;
+  max-width: 80vw;
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
@@ -494,6 +685,15 @@ const addRow = () => {
 .markdown-body {
   line-height: 1.6;
   text-align: left;
+}
+
+#app .markdown-body {
+  text-transform: none;
+}
+
+.markdown-body :deep(pre) {
+  overflow-x: auto;
+  white-space: pre;
 }
 
 .fetch-btn {

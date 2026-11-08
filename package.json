@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@comark/vue": "^0.7.0",
+    "@lucide/vue": "^1.55.0",
     "@shikijs/themes": "^4.4.3",
     "@shikijs/transformers": "^4.4.3",
     "@sveltek/rehype-shiki": "^0.31.1",
@@ -19,7 +20,8 @@
     "@vue-flow/core": "^1.48.2",
     "shiki": "^4.4.3",
     "vite-plugin-node-polyfills": "^0.28.0",
-    "vue": "^3.5.40"
+    "vue": "^3.5.40",
+    "vue-markdown-shiki": "^2.0.0"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
@@ -29,6 +31,7 @@
     "npm-run-all2": "^9.0.2",
     "typescript": "~6.0.0",
     "vite": "^8.1.5",
+    "vite-plugin-forvmsc": "^1.0.6",
     "vite-plugin-vue-devtools": "^8.1.5",
     "vue-tsc": "^3.3.7"
   },
