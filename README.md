@@ -6,7 +6,9 @@ Below is the architeture diagram.
 
 ![Architecture Diagram](./ETL_designer_compoenent_diagram.png)
 
-ETL-Designer in action
+## ETL-Designer in action
+ETL-Designer in action. Once you navigate to the ETL deisgner UI, you can design your ETL flow with below components.
+
 ![Project Screenshot](./ETL_Designer.png)
 
 # Runnning 
