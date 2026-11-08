@@ -29,7 +29,7 @@ const { onDragOver, onDrop, onDragLeave, isDragOver } = useDragAndDrop();
 
 const nodes = ref([]);
 const edges = ref([]);
-const configuration = ref([{config:"", value: ""}]);
+const configuration = ref([]);
 
 const isModalOpen = ref(false);
 const isEdgeModalOpen = ref(false);
